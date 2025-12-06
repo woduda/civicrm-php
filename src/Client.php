@@ -61,11 +61,11 @@ final class Client
 
     public function getRequest(string $uri, array $params = []): RequestInterface
     {
-        $uri = $this->getUrl($uri) . '?params=' . urlencode(json_encode($params));
+        $uri = $this->buildUrl($uri) . '?params=' . urlencode(json_encode($params));
 
         $request = $this->factory->createRequest('GET', $uri);
         foreach ($this->getAllHeaders() as $name => $value) {
-            $request->withHeader($name, $value);
+            $request = $request->withHeader($name, $value);
         }
         return $request;
     }
@@ -77,9 +77,9 @@ final class Client
         return $this->httpClient->sendRequest($request);
     }
 
-    protected function getUrl(string $uri): string
+    protected function buildUrl(string $uri): string
     {
-        return $this->config->getBaseUrl() + $uri;
+        return $this->config->getBaseUrl() . $uri;
     }
 
     protected function getAllHeaders(): array
