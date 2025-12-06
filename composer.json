@@ -1,0 +1,33 @@
+{
+    "name": "woduda/civicrm-api-client",
+    "description": "PSR-18 compatible client for CiviCRM REST APIv4",
+    "type": "library",
+    "require": {
+        "php": "^8.2",
+        "psr/http-client": "^1.0",
+        "php-http/discovery": "^1.20",
+        "psr/http-message": "^2.0",
+        "psr/http-factory": "^1.1"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "Guzzle PSR-18 HTTP client",
+        "symfony/http-client": "Symfony PSR-18 HTTP client"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Woduda\\CiviCRM\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Wojciech Duda",
+            "email": "wo.duda@gmail.com"
+        }
+    ],
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
