@@ -22,7 +22,7 @@ final class Client
      */
     private array $defaultHeaders = [
         'X-Requested-With' => 'XMLHttpRequest',
-        'Content-Type' => 'application/json',
+        'Content-Type' => 'application/x-www-form-urlencoded',
     ];
 
     /**
@@ -61,9 +61,11 @@ final class Client
 
     public function getRequest(string $uri, array $params = []): RequestInterface
     {
-        $uri = $this->buildUrl($uri) . '?params=' . urlencode(json_encode($params));
+        $uri = $this->buildUrl($uri);
+        $body = $this->factory->createStream("params=" . urlencode(json_encode($params)));
 
-        $request = $this->factory->createRequest('GET', $uri);
+        $request = $this->factory->createRequest('POST', $uri)
+            ->withBody($body);
         foreach ($this->getAllHeaders() as $name => $value) {
             $request = $request->withHeader($name, $value);
         }
