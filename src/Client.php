@@ -7,13 +7,14 @@ use Http\Discovery\Psr18ClientDiscovery;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Woduda\CiviCRM\Api\Exception\ApiException;
+use Woduda\CiviCRM\Api\Response\ApiResponse;
 
 final class Client
 {
     /**
-     * @var array<string, Api\ApiInterface> 
+     * @var array<string, Api\EntitiesApi> 
      **/
     private array $apiCache = [];
 
@@ -72,11 +73,16 @@ final class Client
         return $request;
     }
 
-    public function sendRequest($uri, $params): ResponseInterface
+    public function sendRequest($uri, $params): ApiResponse
     {
         $request = $this->getRequest($uri, $params);
 
-        return $this->httpClient->sendRequest($request);
+        $response = $this->httpClient->sendRequest($request);
+
+        if ($response->getStatusCode() >= 400) {
+            throw ApiException::fromResponse($response);
+        }
+        return ApiResponse::fromResponse($response);
     }
 
     protected function buildUrl(string $uri): string
