@@ -9,9 +9,16 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Woduda\CiviCRM\Api\ActivitiesApi;
-use Woduda\CiviCRM\Api\ContactsApi;
-use Woduda\CiviCRM\Api\EventsApi;
+use Woduda\CiviCRM\Api\{
+    ActivitiesApi,
+    AddressesApi,
+    ContactsApi,
+    ContributionsApi,
+    EmailsApi,
+    EventsApi,
+    ParticipantsApi,
+    PhonesApi
+};
 use Woduda\CiviCRM\Api\Exception\ApiException;
 use Woduda\CiviCRM\Api\Response\ApiResponse;
 
@@ -62,11 +69,19 @@ final class Client
     }
 
     /**
-     * @return EntitiesApi
+     * @return ActivitiesApi
      */
     public function activities(): ActivitiesApi
     {
         return $this->apiCache['activities'] ??= new ActivitiesApi($this);
+    }
+
+    /**
+     * @return AddressesApi
+     */
+    public function addresses(): AddressesApi
+    {
+        return $this->apiCache['addresses'] ??= new AddressesApi($this);
     }
 
     /**
@@ -78,11 +93,43 @@ final class Client
     }
 
     /**
+     * @return ContributionsApi
+     */
+    public function contributions(): ContributionsApi
+    {
+        return $this->apiCache['contributions'] ??= new ContributionsApi($this);
+    }
+
+    /**
+     * @return EmailsApi
+     */
+    public function emails(): EmailsApi
+    {
+        return $this->apiCache['emails'] ??= new EmailsApi($this);
+    }
+
+    /**
      * @return EventsApi
      */
     public function events(): EventsApi
     {
         return $this->apiCache['events'] ??= new EventsApi($this);
+    }
+
+    /**
+     * @return ParticipantsApi
+     */
+    public function participants(): ParticipantsApi
+    {
+        return $this->apiCache['participants'] ??= new ParticipantsApi($this);
+    }
+
+    /**
+     * @return PhonesApi
+     */
+    public function phones(): PhonesApi
+    {
+        return $this->apiCache['phones'] ??= new PhonesApi($this);
     }
 
     /**
