@@ -4,24 +4,41 @@ namespace Woduda\CiviCRM;
 
 class Config
 {
-
+    /**
+     * @param string $baseUrl
+     *  Base url to CRM API instance in form: 
+     *  https://yourcivicrm.org/civicrm/ajax/api4/
+     * @param string $apiKey
+     *  Secret API key from CiviCRM
+     * @param array $headers
+     *  Additional headers to send in every request
+     */
     public function __construct(
         private string $baseUrl,
         private string $apiKey,
         private array $headers = []
     ) {}
 
-    public function getBaseUrl()
+    /**
+     * @return string
+     */
+    public function getBaseUrl(): string
     {
         return $this->baseUrl;
     }
 
-    public function getApiKey()
+    /**
+     * @return string
+     */
+    public function getApiKey(): string
     {
         return $this->apiKey;
     }
 
-    public function getHeaders()
+    /**
+     * @return array
+     */
+    public function getHeaders(): array
     {
         return $this->headers;
     }
