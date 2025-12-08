@@ -84,4 +84,26 @@ abstract class EntitiesApi
     {
         return $this->client->sendRequest($this->entity . '/replace', $params);
     }
+
+    /**
+     * Execute "getactions" request
+     *
+     * @param array $params
+     * @return ApiResponse
+     */
+    public function getActions(array $params = []): ApiResponse
+    {
+        return $this->client->sendRequest($this->entity . '/getactions', $params);
+    }
+
+    /**
+     * Execute "getfields" request
+     *
+     * @param array $params
+     * @return ApiResponse
+     */
+    public function getFields(array $params = []): ApiResponse
+    {
+        return $this->client->sendRequest($this->entity . '/getfields', $params);
+    }
 }
