@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Immutable query layer under `src/Query/`: `GetQuery` and `ActionRequest`
+  with-er builders, `Operator`/`Conjunction` enums and a `ChainBuilder` for
+  APIv4 chaining, plus a `CivicrmException` interface and `ValidationException`.
 - Project foundation and quality tooling: PHPStan (level max + strict rules),
   Pint (PER-CS), Rector (up to PHP 8.4), Pest test suite with code coverage and
   native mutation testing.

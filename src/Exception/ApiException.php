@@ -10,7 +10,7 @@ use RuntimeException;
 /**
  * Thrown when CiviCRM returns an HTTP 4xx/5xx response.
  */
-class ApiException extends RuntimeException
+class ApiException extends RuntimeException implements CivicrmException
 {
     /**
      * Builds an exception from an error response returned by the API.
