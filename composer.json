@@ -54,6 +54,7 @@
         "test":      "pest --coverage --min=90",
         "mutate":    "pest --mutate --everything --min=80",
         "rector":    "rector process --dry-run",
+        "smoke":     "php bin/smoke-test.php",
         "qa":        ["@cs:check", "@phpstan", "@rector", "@test", "@mutate"]
     }
 }
