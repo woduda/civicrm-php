@@ -2,6 +2,12 @@
     "name": "woduda/civicrm-api-client",
     "description": "PSR-18 compatible client for CiviCRM REST APIv4",
     "type": "library",
+    "authors": [
+        {
+            "name": "Wojciech Duda",
+            "email": "wo.duda@gmail.com"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "psr/http-client": "^1.0",
@@ -19,15 +25,14 @@
             "Woduda\\CiviCRM\\": "src/"
         }
     },
-    "authors": [
-        {
-            "name": "Wojciech Duda",
-            "email": "wo.duda@gmail.com"
-        }
-    ],
     "config": {
         "allow-plugins": {
             "php-http/discovery": true
         }
+    },
+    "require-dev": {
+        "nyholm/psr7": "^1.8",
+        "php-http/mock-client": "^1.6",
+        "symfony/http-client": "^7.1"
     }
 }
