@@ -1,95 +1,77 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Woduda\CiviCRM\Api;
 
-use Woduda\CiviCRM\Api\Response\ApiResponse;
 use Woduda\CiviCRM\Client;
+use Woduda\CiviCRM\Result\ApiResponse;
 
+/**
+ * Base class for CiviCRM APIv4 entity accessors.
+ *
+ * Concrete subclasses only declare the {@see $entity} name; every standard
+ * APIv4 action is provided here as a thin wrapper over the transport.
+ */
 abstract class EntitiesApi
 {
     /**
-     * Entity name to use in request uri
-     *
-     * @var string
+     * CiviCRM entity name used in the request URI.
      */
-    protected $entity = 'any';
+    protected string $entity = 'any';
+
+    public function __construct(protected readonly Client $client) {}
 
     /**
-     * @param Client $client
+     * @param array<string, mixed> $params
      */
-    public function __construct(protected Client $client) {}
-
-    /**
-     * Execute "get" request
-     *
-     * @param array $params
-     * @return ApiResponse
-     */
-    public function get(array $params): ApiResponse
+    public function get(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/get', $params);
     }
 
     /**
-     * Execute "create" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
-    public function create(array $params): ApiResponse
+    public function create(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/create', $params);
     }
 
     /**
-     * Execute "update" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
-    public function update(array $params): ApiResponse
+    public function update(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/update', $params);
     }
 
     /**
-     * Execute "save" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
-    public function save(array $params): ApiResponse
+    public function save(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/save', $params);
     }
 
     /**
-     * Execute "delete" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
-    public function delete(array $params): ApiResponse
+    public function delete(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/delete', $params);
     }
 
     /**
-     * Execute "replace" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
-    public function replace(array $params): ApiResponse
+    public function replace(array $params = []): ApiResponse
     {
         return $this->client->sendRequest($this->entity . '/replace', $params);
     }
 
     /**
-     * Execute "getactions" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
     public function getActions(array $params = []): ApiResponse
     {
@@ -97,10 +79,7 @@ abstract class EntitiesApi
     }
 
     /**
-     * Execute "getfields" request
-     *
-     * @param array $params
-     * @return ApiResponse
+     * @param array<string, mixed> $params
      */
     public function getFields(array $params = []): ApiResponse
     {

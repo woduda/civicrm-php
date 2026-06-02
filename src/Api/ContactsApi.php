@@ -1,14 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Woduda\CiviCRM\Api;
 
 /**
- * Class for requests to Contact entity
+ * Accessor for the CiviCRM "Contact" entity.
  */
-class ContactsApi extends EntitiesApi
+final class ContactsApi extends EntitiesApi
 {
-    /**
-     * @var string
-     */
-    protected $entity = 'Contact';
+    protected string $entity = 'Contact';
 }

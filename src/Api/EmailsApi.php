@@ -1,14 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Woduda\CiviCRM\Api;
 
 /**
- * Class for requests to Email entity
+ * Accessor for the CiviCRM "Email" entity.
  */
-class EmailsApi extends EntitiesApi
+final class EmailsApi extends EntitiesApi
 {
-    /**
-     * @var string
-     */
-    protected $entity = 'Email';
+    protected string $entity = 'Email';
 }

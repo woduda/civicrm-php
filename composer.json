@@ -2,6 +2,7 @@
     "name": "woduda/civicrm-api-client",
     "description": "PSR-18 compatible client for CiviCRM REST APIv4",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "Wojciech Duda",
@@ -9,30 +10,50 @@
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": ">=8.3",
         "psr/http-client": "^1.0",
-        "php-http/discovery": "^1.20",
+        "psr/http-factory": "^1.1",
         "psr/http-message": "^2.0",
-        "psr/http-factory": "^1.1"
+        "psr/log": "^3.0",
+        "php-http/discovery": "^1.20"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "laravel/pint": "^1.18",
+        "rector/rector": "^2.0",
+        "php-http/mock-client": "^1.6",
+        "nyholm/psr7": "^1.8"
     },
     "suggest": {
         "guzzlehttp/guzzle": "Guzzle PSR-18 HTTP client",
         "symfony/http-client": "Symfony PSR-18 HTTP client"
     },
-    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Woduda\\CiviCRM\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Woduda\\CiviCRM\\Tests\\": "tests/"
+        }
+    },
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
+            "pestphp/pest-plugin": true,
             "php-http/discovery": true
         }
     },
-    "require-dev": {
-        "nyholm/psr7": "^1.8",
-        "php-http/mock-client": "^1.6",
-        "symfony/http-client": "^7.1"
+    "scripts": {
+        "cs":        "pint",
+        "cs:check":  "pint --test",
+        "phpstan":   "phpstan analyse --memory-limit=512M",
+        "test":      "pest --coverage --min=90",
+        "mutate":    "pest --mutate --everything --min=80",
+        "rector":    "rector process --dry-run",
+        "qa":        ["@cs:check", "@phpstan", "@rector", "@test", "@mutate"]
     }
 }

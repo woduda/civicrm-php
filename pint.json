@@ -1,0 +1,9 @@
+{
+    "preset": "per",
+    "notPath": [
+        "test.php"
+    ],
+    "rules": {
+        "declare_strict_types": true
+    }
+}

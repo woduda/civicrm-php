@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Woduda\CiviCRM;
 
 use Http\Discovery\Psr17Factory;
@@ -9,29 +11,30 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Woduda\CiviCRM\Api\{
-    ActivitiesApi,
-    AddressesApi,
-    ContactsApi,
-    ContributionsApi,
-    EmailsApi,
-    EventsApi,
-    ParticipantsApi,
-    PhonesApi
-};
-use Woduda\CiviCRM\Api\Response\ApiResponse;
+use Woduda\CiviCRM\Api\ActivitiesApi;
+use Woduda\CiviCRM\Api\AddressesApi;
+use Woduda\CiviCRM\Api\ContactsApi;
+use Woduda\CiviCRM\Api\ContributionsApi;
+use Woduda\CiviCRM\Api\EmailsApi;
+use Woduda\CiviCRM\Api\EntitiesApi;
+use Woduda\CiviCRM\Api\EventsApi;
+use Woduda\CiviCRM\Api\ParticipantsApi;
+use Woduda\CiviCRM\Api\PhonesApi;
 use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Result\ApiResponse;
 
 final class Client
 {
     /**
-     * @var array<string, Api\EntitiesApi> 
+     * Lazily instantiated entity API accessors.
+     *
+     * @var array<string, EntitiesApi>
      */
     private array $apiCache = [];
 
     /**
-     * Default headers to send in every request
-     * 
+     * Headers sent with every request.
+     *
      * @var array<string, string>
      */
     private array $defaultHeaders = [
@@ -39,28 +42,17 @@ final class Client
         'Content-Type' => 'application/x-www-form-urlencoded',
     ];
 
-    /**
-     * @var Psr17Factory
-     */
-    private $factory;
+    private readonly ClientInterface $httpClient;
 
-    /**
-     * @param Config $config
-     *  Config instance.
-     * @param ClientInterface|null $httpClient
-     *  PSR-18 compliant HTTP client.
-     * @param RequestFactoryInterface|null $requestFactory
-     *  Optional request factory instance.
-     * @param StreamFactoryInterface|null $streamFactory
-     *  Optional stream factory instance.
-     */
+    private readonly Psr17Factory $factory;
+
     public function __construct(
-        private Config $config,
-        private ?ClientInterface $httpClient = null,
+        private readonly Config $config,
+        ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
-        ?StreamFactoryInterface $streamFactory = null
+        ?StreamFactoryInterface $streamFactory = null,
     ) {
-        $this->httpClient = $httpClient ?: Psr18ClientDiscovery::find();
+        $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
 
         $this->factory = new Psr17Factory(
             requestFactory: $requestFactory,
@@ -68,98 +60,74 @@ final class Client
         );
     }
 
-    /**
-     * @return ActivitiesApi
-     */
     public function activities(): ActivitiesApi
     {
-        return $this->apiCache['activities'] ??= new ActivitiesApi($this);
+        return $this->cached('activities', static fn(Client $client): ActivitiesApi => new ActivitiesApi($client));
     }
 
-    /**
-     * @return AddressesApi
-     */
     public function addresses(): AddressesApi
     {
-        return $this->apiCache['addresses'] ??= new AddressesApi($this);
+        return $this->cached('addresses', static fn(Client $client): AddressesApi => new AddressesApi($client));
     }
 
-    /**
-     * @return ContactsApi
-     */
     public function contacts(): ContactsApi
     {
-        return $this->apiCache['contacts'] ??= new ContactsApi($this);
+        return $this->cached('contacts', static fn(Client $client): ContactsApi => new ContactsApi($client));
     }
 
-    /**
-     * @return ContributionsApi
-     */
     public function contributions(): ContributionsApi
     {
-        return $this->apiCache['contributions'] ??= new ContributionsApi($this);
+        return $this->cached('contributions', static fn(Client $client): ContributionsApi => new ContributionsApi($client));
     }
 
-    /**
-     * @return EmailsApi
-     */
     public function emails(): EmailsApi
     {
-        return $this->apiCache['emails'] ??= new EmailsApi($this);
+        return $this->cached('emails', static fn(Client $client): EmailsApi => new EmailsApi($client));
     }
 
-    /**
-     * @return EventsApi
-     */
     public function events(): EventsApi
     {
-        return $this->apiCache['events'] ??= new EventsApi($this);
+        return $this->cached('events', static fn(Client $client): EventsApi => new EventsApi($client));
     }
 
-    /**
-     * @return ParticipantsApi
-     */
     public function participants(): ParticipantsApi
     {
-        return $this->apiCache['participants'] ??= new ParticipantsApi($this);
+        return $this->cached('participants', static fn(Client $client): ParticipantsApi => new ParticipantsApi($client));
     }
 
-    /**
-     * @return PhonesApi
-     */
     public function phones(): PhonesApi
     {
-        return $this->apiCache['phones'] ??= new PhonesApi($this);
+        return $this->cached('phones', static fn(Client $client): PhonesApi => new PhonesApi($client));
     }
 
     /**
-     * Creates Request instance
+     * Builds the PSR-7 request for a CiviCRM APIv4 action.
      *
-     * @param string $uri
-     * @param array $params
-     * @return RequestInterface
+     * @param  array<string, mixed> $params
+     * @throws \JsonException
      */
     public function getRequest(string $uri, array $params = []): RequestInterface
     {
-        $uri = $this->buildUrl($uri);
-        $body = $this->factory->createStream("params=" . urlencode(json_encode($params)));
+        $encoded = json_encode($params, JSON_THROW_ON_ERROR);
+        $body = $this->factory->createStream('params=' . urlencode($encoded));
 
-        $request = $this->factory->createRequest('POST', $uri)
+        $request = $this->factory->createRequest('POST', $this->buildUrl($uri))
             ->withBody($body);
+
         foreach ($this->getAllHeaders() as $name => $value) {
             $request = $request->withHeader($name, $value);
         }
+
         return $request;
     }
 
     /**
-     * Sends request to API endpoint with HTTP client
+     * Sends a request to the API endpoint and wraps the response.
      *
-     * @param string $uri
-     * @param array $params
-     * @return ApiResponse
-     * @throws ApiException
-     * @throws ClientExceptionInterface
+     * @param  array<string, mixed> $params
+     * @throws ApiException             On HTTP 4xx/5xx responses
+     * @throws ClientExceptionInterface On transport errors
+     * @throws \JsonException           On non-encodable parameters
      */
     public function sendRequest(string $uri, array $params = []): ApiResponse
     {
@@ -170,40 +138,49 @@ final class Client
         if ($response->getStatusCode() >= 400) {
             throw ApiException::fromResponse($response);
         }
+
         return ApiResponse::fromResponse($response);
     }
 
     /**
-     * Builds API endpoint url
-     *
-     * @param string $uri
-     * @return string
+     * Builds the absolute endpoint URL for an entity/action URI.
      */
-    protected function buildUrl(string $uri): string
+    private function buildUrl(string $uri): string
     {
         return $this->config->getBaseUrl() . $uri;
     }
 
     /**
-     * Returns all headers to send in request
+     * Returns all headers sent with a request (defaults + auth).
      *
-     * @return array
+     * @return array<string, string>
      */
-    protected function getAllHeaders(): array
+    private function getAllHeaders(): array
     {
-        return array_merge(
-            $this->defaultHeaders,
-            $this->getAuthHeaders()
-        );
+        return array_merge($this->defaultHeaders, $this->getAuthHeaders());
     }
 
     /**
-     * Returns Authentication headers
+     * Returns the authentication headers.
      *
-     * @return array
+     * @return array<string, string>
      */
-    protected function getAuthHeaders(): array
+    private function getAuthHeaders(): array
     {
         return ['Authorization' => 'Bearer ' . $this->config->getApiKey()];
+    }
+
+    /**
+     * @template T of EntitiesApi
+     *
+     * @param  callable(self): T $factory
+     * @return T
+     */
+    private function cached(string $key, callable $factory): EntitiesApi
+    {
+        /** @var T $api */
+        $api = $this->apiCache[$key] ??= $factory($this);
+
+        return $api;
     }
 }
