@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    name: QA (PHP ${{ matrix.php }}, ${{ matrix.deps }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+        deps: ['lowest', 'highest']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies (${{ matrix.deps }})
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: ${{ matrix.deps }}
+
+      - name: Coding style (Pint / PER-CS)
+        run: composer cs
+
+      - name: Static analysis (PHPStan)
+        run: composer phpstan
+
+      - name: Rector (dry-run)
+        run: composer rector
+
+      - name: Tests (Pest)
+        run: composer test
+
+      - name: Mutation testing (Infection)
+        run: composer infection
