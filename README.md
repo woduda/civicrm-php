@@ -32,7 +32,7 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
 ## Installation
 
 ```bash
-composer require woduda/civicrm-api-client
+composer require woduda/civicrm-php
 ```
 
 No concrete HTTP client is bundled. Install whichever PSR-18 implementation you
