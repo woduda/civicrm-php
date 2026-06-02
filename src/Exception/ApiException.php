@@ -1,12 +1,14 @@
 <?php
 
-namespace Woduda\CiviCRM\Api\Exception;
+declare(strict_types=1);
+
+namespace Woduda\CiviCRM\Exception;
 
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 
 /**
- * ApiException thrown in case of HTTP 4xx/5xx response 
+ * ApiException thrown in case of HTTP 4xx/5xx response
  * from CiviCRM API
  */
 class ApiException extends RuntimeException
@@ -21,9 +23,9 @@ class ApiException extends RuntimeException
     {
         $json = json_decode($response->getBody()->getContents(), true);
 
-        throw new static(
-            $json['error_message'] ?? 'Unknown Api error',
-            $json['error_code'] ?? 0
+        return new self(
+            is_array($json) ? ($json['error_message'] ?? 'Unknown Api error') : 'Unknown Api error',
+            is_array($json) ? (int) ($json['error_code'] ?? 0) : 0,
         );
     }
 }

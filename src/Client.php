@@ -19,8 +19,8 @@ use Woduda\CiviCRM\Api\{
     ParticipantsApi,
     PhonesApi
 };
-use Woduda\CiviCRM\Api\Exception\ApiException;
 use Woduda\CiviCRM\Api\Response\ApiResponse;
+use Woduda\CiviCRM\Exception\ApiException;
 
 final class Client
 {
