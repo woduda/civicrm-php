@@ -44,11 +44,35 @@ fully typed. Mirrors the ergonomics of modern API SDKs (Stripe-php style).
 > `TestFileNameNotFoundException`. Do not reintroduce Infection without verifying
 > this is fixed upstream.
 
+## Architecture
+
+Two parallel entry-point layers exist in the codebase — the legacy one is kept for
+backwards compatibility; all new entity APIs build on the new one.
+
+**New layer (preferred for all new code):**
+- `CiviCrmClient` (`src/CiviCrmClient.php`) — `final readonly` entry point; `::create(Config)` factory uses `Transport::createDefault`; `entity(string): GenericApi` for arbitrary entities; typed shortcuts (`contacts()`, `activities()`, `tags()`, `groups()`) are placeholders (TODO PR#4) that currently return `GenericApi`
+- `TransportInterface` (`src/Contract/TransportInterface.php`) — `send(entity, action, params): ApiResponse`
+- `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter wrapping `Client`; `createDefault(Config): self`
+- `AbstractEntityApi` (`src/Api/AbstractEntityApi.php`) — `abstract readonly`; 4 protected helpers: `executeGet(GetQuery)`, `executeAction(ActionRequest)`, `getFields()`, `getActions()`; return `array` for now (TODO PR#5: return `Result`)
+- `GenericApi` (`src/Api/GenericApi.php`) — `final readonly extends AbstractEntityApi`; public `get/create/update/save/delete/getFields/getActions`
+
+**Legacy layer (do not extend):**
+- `Client` (`src/Client.php`) — PSR-18 HTTP transport; `sendRequest(uri, params): ApiResponse`
+- `EntitiesApi` (`src/Api/EntitiesApi.php`) — abstract base for old typed subclasses (ContactsApi, ActivitiesApi, etc.)
+
+**Coding notes for the new layer:**
+- `abstract readonly class` requires the child to also be `readonly` (PHP 8.2+ enforced)
+- When overriding a `protected` method as `public` in a child class, add `#[\Override]` — Rector enforces this
+- `resolveWhere(GetQuery|array): array` pattern for where-coercion: use `is_array($params['where'] ?? null)` to safely extract the where key from `GetQuery::toParams()` (PHPStan sees array access as `mixed`; `is_array` narrows it)
+- Action name convention in transport calls: all lowercase (`getfields`, `getactions`, `get`, `create`, etc.)
+
 ## Testing
 
 - Pest 3
-- Unit tests: NO network. Inject a mock Psr\Http\Client\ClientInterface (php-http/mock-client).
-- Shared test helpers (e.g. client factories) live in `tests/Pest.php`, not inside test files.
+- Unit tests: NO network. Two test-client helpers live in `tests/Pest.php`:
+  - `civicrmClient(): [Client, MockClient]` — for HTTP-level tests (old layer)
+  - `civicrmNewClient(): [CiviCrmClient, SpyTransport]` — for transport-level tests (new layer)
+- `SpyTransport` (defined in `tests/Pest.php`) — in-memory spy implementing `TransportInterface`; `queue(ApiResponse)` to preset a response; `$spy->calls` to assert dispatched entity/action/params
 - Fixtures: real CiviCRM APIv4 JSON responses in tests/Fixtures/\*.json
 - Every public method has tests, including error paths (4xx, 5xx, malformed JSON)
 - Use datasets for operator/edge-case matrices
