@@ -26,4 +26,21 @@ final class ValidationException extends InvalidArgumentException implements Civi
             $direction,
         ));
     }
+
+    /**
+     * Builds an exception for a custom field that does not exist.
+     *
+     * Example:
+     * ```php
+     * throw ValidationException::unknownCustomField('Wolontariat', 'volunteer_status');
+     * ```
+     */
+    public static function unknownCustomField(string $groupName, string $fieldName): self
+    {
+        return new self(sprintf(
+            'Custom field "%s.%s" does not exist.',
+            $groupName,
+            $fieldName,
+        ));
+    }
 }

@@ -1,0 +1,11 @@
+{
+    "_source": "CiviCRM 5.75 Tag.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 7,
+            "name": "VIP",
+            "used_for": "civicrm_contact"
+        }
+    ]
+}

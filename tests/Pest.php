@@ -29,14 +29,16 @@ final class SpyTransport implements TransportInterface
     /** @var list<array{entity: string, action: string, params: array<string, mixed>}> */
     public array $calls = [];
 
-    private ?ApiResponse $nextResponse = null;
+    /** @var list<ApiResponse> */
+    private array $responseQueue = [];
 
     /**
      * Enqueues a response to be returned by the next {@see send()} call.
+     * Multiple calls enqueue in FIFO order; unqueued calls return an empty response.
      */
     public function queue(ApiResponse $response): void
     {
-        $this->nextResponse = $response;
+        $this->responseQueue[] = $response;
     }
 
     /**
@@ -45,10 +47,12 @@ final class SpyTransport implements TransportInterface
     public function send(string $entity, string $action, array $params = []): ApiResponse
     {
         $this->calls[] = ['entity' => $entity, 'action' => $action, 'params' => $params];
-        $response = $this->nextResponse ?? new ApiResponse(4, 0, []);
-        $this->nextResponse = null;
 
-        return $response;
+        if ($this->responseQueue !== []) {
+            return array_shift($this->responseQueue);
+        }
+
+        return new ApiResponse(4, 0, []);
     }
 }
 

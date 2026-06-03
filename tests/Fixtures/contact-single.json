@@ -1,0 +1,14 @@
+{
+    "_source": "CiviCRM 5.75 Contact.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 42,
+            "contact_type": "Individual",
+            "display_name": "Jane Doe",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email_primary.email": "jane@example.org"
+        }
+    ]
+}

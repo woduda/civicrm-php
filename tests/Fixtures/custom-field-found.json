@@ -1,0 +1,12 @@
+{
+    "_source": "CiviCRM 5.75 CustomField.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 11,
+            "name": "volunteer_status",
+            "label": "Volunteer Status",
+            "custom_group_id.name": "Wolontariat"
+        }
+    ]
+}

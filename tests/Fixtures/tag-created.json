@@ -1,0 +1,11 @@
+{
+    "_source": "CiviCRM 5.75 Tag.create response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 8,
+            "name": "Donor",
+            "used_for": "civicrm_contact"
+        }
+    ]
+}

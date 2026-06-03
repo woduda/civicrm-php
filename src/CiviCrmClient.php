@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Woduda\CiviCRM;
 
 use Psr\Http\Client\ClientExceptionInterface;
+use Woduda\CiviCRM\Api\ActivityApi;
+use Woduda\CiviCRM\Api\ContactApi;
+use Woduda\CiviCRM\Api\CustomFieldResolver;
 use Woduda\CiviCRM\Api\GenericApi;
+use Woduda\CiviCRM\Api\GroupApi;
+use Woduda\CiviCRM\Api\TagApi;
 use Woduda\CiviCRM\Contract\TransportInterface;
 use Woduda\CiviCRM\Exception\ApiException;
 use Woduda\CiviCRM\Http\Transport;
@@ -42,43 +47,35 @@ final readonly class CiviCrmClient
     }
 
     /**
-     * Returns a GenericApi for the Contact entity.
-     *
-     * @TODO PR#4: replace with a typed ContactsApi
+     * Returns a typed {@see ContactApi} for the Contact entity.
      */
-    public function contacts(): GenericApi
+    public function contacts(): ContactApi
     {
-        return $this->entity('Contact');
+        return new ContactApi($this->transport, new CustomFieldResolver($this->transport));
     }
 
     /**
-     * Returns a GenericApi for the Activity entity.
-     *
-     * @TODO PR#4: replace with a typed ActivitiesApi
+     * Returns a typed {@see ActivityApi} for the Activity entity.
      */
-    public function activities(): GenericApi
+    public function activities(): ActivityApi
     {
-        return $this->entity('Activity');
+        return new ActivityApi($this->transport);
     }
 
     /**
-     * Returns a GenericApi for the Tag entity.
-     *
-     * @TODO PR#4: replace with a typed TagsApi
+     * Returns a typed {@see TagApi} for the Tag entity.
      */
-    public function tags(): GenericApi
+    public function tags(): TagApi
     {
-        return $this->entity('Tag');
+        return new TagApi($this->transport);
     }
 
     /**
-     * Returns a GenericApi for the Group entity.
-     *
-     * @TODO PR#4: replace with a typed GroupsApi
+     * Returns a typed {@see GroupApi} for the Group entity.
      */
-    public function groups(): GenericApi
+    public function groups(): GroupApi
     {
-        return $this->entity('Group');
+        return new GroupApi($this->transport);
     }
 
     /**
