@@ -12,7 +12,11 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
 - [Installation](#installation)
 - [Quickstart](#quickstart)
 - [Configuration & authentication](#configuration--authentication)
-- [Entities & actions](#entities--actions)
+- [Generic entity API (`CiviCrmClient`)](#generic-entity-api-civicrmclient)
+    - [Typed entity shortcuts](#typed-entity-shortcuts)
+    - [Arbitrary entities](#arbitrary-entities)
+    - [CRUD methods](#crud-methods)
+    - [Escape hatch (`raw`)](#escape-hatch-raw)
 - [Query builder (`GetQuery`)](#query-builder-getquery)
     - [Operators](#operators)
     - [AND / OR grouping](#and--or-grouping)
@@ -47,20 +51,25 @@ composer require symfony/http-client nyholm/psr7
 ## Quickstart
 
 ```php
-use Woduda\CiviCRM\Client;
+use Woduda\CiviCRM\CiviCrmClient;
 use Woduda\CiviCRM\Config;
+use Woduda\CiviCRM\Query\GetQuery;
+use Woduda\CiviCRM\Query\Operator;
 
-$client = new Client(new Config(
+$client = CiviCrmClient::create(new Config(
     baseUrl: 'https://example.org/civicrm/ajax/api4/',
-    apiKey: 'your-api-key',
+    apiKey:  'your-api-key',
 ));
 
-$response = $client->contacts()->get([
-    'where' => [['contact_type', '=', 'Individual']],
-    'limit' => 25,
-]);
+$contacts = $client->contacts()->get(
+    GetQuery::new()
+        ->select('id', 'display_name', 'email_primary.email')
+        ->where('contact_type', Operator::Equals, 'Individual')
+        ->orderBy('display_name')
+        ->limit(25),
+);
 
-foreach ($response->values as $contact) {
+foreach ($contacts as $contact) {
     echo $contact['display_name'], PHP_EOL;
 }
 ```
@@ -75,71 +84,116 @@ use Woduda\CiviCRM\Config;
 
 $config = new Config(
     baseUrl: 'https://example.org/civicrm/ajax/api4/',
-    apiKey: 'your-api-key',
+    apiKey:  'your-api-key',
 );
 ```
 
 The client sends `Authorization: Bearer {apiKey}` together with the required
 `X-Requested-With: XMLHttpRequest` header on every request.
 
-### Injecting your own HTTP client
-
-Discovery is convenient, but you can inject any PSR-18 client (e.g. one
-configured with timeouts, retries or a mock in tests):
+`CiviCrmClient::create()` auto-discovers the installed PSR-18 client:
 
 ```php
-use Woduda\CiviCRM\Client;
-use Woduda\CiviCRM\Config;
+use Woduda\CiviCRM\CiviCrmClient;
 
-$client = new Client(
-    config: $config,
-    httpClient: $myPsr18Client,        // optional
-    requestFactory: $myRequestFactory, // optional
-    streamFactory: $myStreamFactory,   // optional
+$client = CiviCrmClient::create($config);
+```
+
+### Injecting your own HTTP client
+
+Pass any PSR-18 client (e.g. one configured with timeouts, retries, or a mock
+in tests) via `CiviCrmClient`'s constructor:
+
+```php
+use Woduda\CiviCRM\CiviCrmClient;
+use Woduda\CiviCRM\Http\Transport;
+
+$client = new CiviCrmClient(
+    new Transport(new \Woduda\CiviCRM\Client($config, $myPsr18Client)),
 );
 ```
 
-## Entities & actions
+## Generic entity API (`CiviCrmClient`)
 
-Each entity is reached through an accessor on the client; every accessor exposes
-the standard APIv4 actions (`get`, `create`, `update`, `save`, `delete`,
-`replace`, `getActions`, `getFields`):
+`CiviCrmClient` is the primary entry point. It wraps a `TransportInterface` and
+exposes a fluent API over any CiviCRM entity. All CRUD methods accept typed
+builder objects directly — no `.toParams()` glue is needed.
 
-```php
-$client->contacts();
-$client->emails();
-$client->phones();
-$client->addresses();
-$client->activities();
-$client->events();
-$client->participants();
-$client->contributions();
-```
+### Typed entity shortcuts
 
 ```php
-// Create
-$client->contacts()->create([
-    'values' => ['contact_type' => 'Individual', 'first_name' => 'Jane', 'last_name' => 'Doe'],
-]);
-
-// Update
-$client->contacts()->update([
-    'values' => ['first_name' => 'Janet'],
-    'where' => [['id', '=', 42]],
-]);
-
-// Delete
-$client->contacts()->delete([
-    'where' => [['id', '=', 42]],
-]);
+$client->contacts();      // GenericApi for Contact
+$client->activities();    // GenericApi for Activity
+$client->tags();          // GenericApi for Tag
+$client->groups();        // GenericApi for Group
 ```
 
-Hand-writing the `params` array works, but the typed builders below are safer.
+### Arbitrary entities
+
+Use `entity(string)` for any entity not covered by a shortcut:
+
+```php
+$client->entity('Relationship')->get(GetQuery::new()->limit(10));
+$client->entity('OptionValue')->create(['label' => 'VIP', 'option_group_id' => 1]);
+```
+
+### CRUD methods
+
+All CRUD methods return the values array (the equivalent of `ApiResponse->values`):
+
+```php
+// Read
+$contacts = $client->contacts()->get(
+    GetQuery::new()->where('last_name', Operator::Equals, 'Smith')->limit(50),
+);
+
+// Create — returns the created record(s)
+$new = $client->contacts()->create([
+    'contact_type' => 'Individual',
+    'first_name'   => 'Jane',
+    'last_name'    => 'Doe',
+]);
+
+// Update — $where accepts a GetQuery or a raw APIv4 where array
+$client->contacts()->update(
+    ['first_name' => 'Janet'],
+    GetQuery::new()->where('id', Operator::Equals, 42),
+);
+// or:
+$client->contacts()->update(['first_name' => 'Janet'], [['id', '=', 42]]);
+
+// Save (bulk upsert)
+$client->contacts()->save([
+    ['id' => 1, 'do_not_email' => true],
+    ['id' => 2, 'do_not_email' => true],
+]);
+
+// Delete — $where accepts a GetQuery or a raw APIv4 where array
+$client->contacts()->delete(GetQuery::new()->where('id', Operator::Equals, 42));
+// or:
+$client->contacts()->delete([['id', '=', 42]]);
+
+// Metadata
+$fields  = $client->contacts()->getFields();   // array of field definitions
+$actions = $client->contacts()->getActions();  // array of available actions
+```
+
+### Escape hatch (`raw`)
+
+For any action not exposed by typed methods, call `raw()` directly:
+
+```php
+$result = $client->raw('Contact', 'merge', [
+    'main_id'  => 1,
+    'other_id' => 2,
+]);
+```
 
 ## Query builder (`GetQuery`)
 
-`GetQuery` is an immutable builder: every method returns a **new** instance and
-`toParams()` renders the APIv4 `params` array. Feed it into any `get` call.
+`GetQuery` is an immutable builder: every method returns a **new** instance.
+Pass a `GetQuery` directly to any `get()` or `delete()` call — there is no need
+to call `.toParams()` when using `CiviCrmClient`.
 
 ```php
 use Woduda\CiviCRM\Query\GetQuery;
@@ -153,19 +207,20 @@ $query = GetQuery::new()
     ->limit(50)
     ->offset(100);
 
-$response = $client->contacts()->get($query->toParams());
+$contacts = $client->contacts()->get($query);
 ```
 
-`toParams()` only emits keys you actually set, so the example above produces:
+`toParams()` is available when you need the raw APIv4 params array:
 
 ```php
-[
-    'select'  => ['id', 'display_name', 'email_primary.email'],
-    'where'   => [['contact_type', '=', 'Individual'], ['id', 'IN', [1, 2, 3]]],
-    'orderBy' => ['display_name' => 'DESC'],
-    'limit'   => 50,
-    'offset'  => 100,
-]
+$query->toParams();
+// [
+//     'select'  => ['id', 'display_name', 'email_primary.email'],
+//     'where'   => [['contact_type', '=', 'Individual'], ['id', 'IN', [1, 2, 3]]],
+//     'orderBy' => ['display_name' => 'DESC'],
+//     'limit'   => 50,
+//     'offset'  => 100,
+// ]
 ```
 
 Other helpers: `addSelect()`, `whereNull()`, `groupBy()`, `having()`.
@@ -212,23 +267,26 @@ GetQuery::new()
 
 ## Write actions (`ActionRequest`)
 
-`ActionRequest` models a single write action with named constructors. Execute it
-by sending `"{$entity}/{$action}"` with its rendered params:
+`ActionRequest` models a single write action as an immutable value object with
+named constructors. You can build it explicitly for complex operations, or pass
+its rendered params to `raw()`:
 
 ```php
 use Woduda\CiviCRM\Query\ActionRequest;
 
+// Build and introspect before sending
 $request = ActionRequest::create('Contact', [
     'contact_type' => 'Individual',
-    'first_name' => 'Jane',
+    'first_name'   => 'Jane',
 ]);
 
-$client->sendRequest("{$request->entity}/{$request->action}", $request->toParams());
+// Send via raw() for full control
+$client->raw($request->entity, $request->action, $request->toParams());
 ```
 
 ```php
 ActionRequest::update('Contact', ['first_name' => 'Janet'], [['id', '=', 42]]);
-ActionRequest::save('Contact', [['first_name' => 'A'], ['first_name' => 'B']]); // bulk upsert
+ActionRequest::save('Contact', [['first_name' => 'A'], ['first_name' => 'B']]);
 ActionRequest::delete('Contact', [['id', '=', 42]]);
 ```
 
@@ -245,7 +303,7 @@ use Woduda\CiviCRM\Query\ActionRequest;
 $request = ActionRequest::create('Contact', ['first_name' => 'Jane'])
     ->withChain('email', ActionRequest::create('Email', [
         'contact_id' => '$id',
-        'email' => 'jane@example.org',
+        'email'      => 'jane@example.org',
     ]));
 
 // chain => ['email' => ['Email', 'create', ['values' => [...]]]]
@@ -270,16 +328,34 @@ $request = ActionRequest::create('Contact', ['first_name' => 'Jane'])
 > parent request's entity. To chain a `get` on a _different_ entity, use
 > `ChainBuilder::get()` / `ChainBuilder::add()`.
 
-## Responses
-
-Successful calls return an immutable `ApiResponse`:
+Execute a chained request via `raw()`:
 
 ```php
-$response = $client->contacts()->get($query->toParams());
+$result = $client->raw($request->entity, $request->action, $request->toParams());
+```
 
+## Responses
+
+**`CiviCrmClient` methods** (`get`, `create`, `update`, `save`, `delete`,
+`getFields`, `getActions`, `raw`) return the values array directly:
+
+```php
+$contacts = $client->contacts()->get(GetQuery::new()->limit(5));
+// [['id' => 1, 'display_name' => 'Jane Doe'], ...]
+```
+
+**The low-level transport** returns an immutable `ApiResponse` value object when
+you need the full response metadata:
+
+```php
+use Woduda\CiviCRM\Http\Transport;
+
+$transport = Transport::createDefault($config);
+$response  = $transport->send('Contact', 'get', ['limit' => 5]);
+
+$response->values;  // array — returned records
 $response->count;   // int — number of records reported by CiviCRM
-$response->values;  // array — the returned records
-$response->version; // int — APIv4 version
+$response->version; // int — APIv4 version (4)
 ```
 
 ## Error handling
@@ -293,7 +369,7 @@ use Woduda\CiviCRM\Exception\CivicrmException;
 use Woduda\CiviCRM\Exception\ValidationException;
 
 try {
-    $client->contacts()->get($query->toParams());
+    $client->contacts()->get(GetQuery::new()->limit(10));
 } catch (ApiException $e) {
     // HTTP 4xx/5xx from CiviCRM: $e->getMessage() / $e->getCode()
 } catch (ValidationException $e) {

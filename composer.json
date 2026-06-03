@@ -1,6 +1,7 @@
 {
     "name": "woduda/civicrm-php",
     "description": "PSR-18 compatible client for CiviCRM REST APIv4",
+    "version": "0.2.0",
     "type": "library",
     "keywords": [
         "civicrm",
