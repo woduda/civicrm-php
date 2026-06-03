@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-03
+
+### Added
+
+- `ContactApi` (`src/Api/ContactApi.php`) — typed Contact API with `get(GetQuery)`,
+  `getById(int): ?array`, `create(array)`, `update(int, array)`, `upsertByEmail(string, array)`,
+  `withTags(int, list<string>)`, `addToGroups(int, list<string>)`,
+  `setCustomFields(int, string, array)`, `getFields()`, `getActions()`.
+  `upsertByEmail` is implemented as two sequential requests (Contact.get + conditional
+  create/update); it is not atomic and documents this as a known limitation.
+  `withTags` and `addToGroups` create missing tags/groups on the fly and write
+  memberships via idempotent `EntityTag.save` / `GroupContact.save` with `match`.
+- `ActivityApi` (`src/Api/ActivityApi.php`) — `create(array)`, `get(GetQuery)`,
+  `logForContact(int, string, array $extra)` (defaults `status_id.name = 'Completed'`;
+  `$extra` overrides any default), `forContact(int): GetQuery` (pre-filtered query),
+  `getFields()`, `getActions()`.
+- `TagApi` (`src/Api/TagApi.php`) — `ensureExists(string): int` (get-or-create, returns
+  ID), `tagContact(int, string)` (idempotent via `EntityTag.save` with match),
+  `getFields()`, `getActions()`.
+- `GroupApi` (`src/Api/GroupApi.php`) — `ensureExists(string): int`, `addContact(int, int)`
+  (idempotent, `status = 'Added'`), `removeContact(int, int)` (updates status to
+  `'Removed'` to preserve audit trail), `getFields()`, `getActions()`.
+- `CustomFieldResolver` (`src/Api/CustomFieldResolver.php`) — validates that a
+  `"GroupName.field_name"` combination exists in CiviCRM via `CustomField.get`, caches
+  results per instance, and throws `ValidationException::unknownCustomField()` when the
+  field is absent.
+- `ValidationException::unknownCustomField(string, string)` named constructor.
+- `CiviCrmClient::contacts()`, `activities()`, `tags()`, `groups()` now return the typed
+  API classes above instead of `GenericApi`; removed the PR#4 TODO comments.
+- `SpyTransport` in `tests/Pest.php` upgraded from a single-slot response holder to a
+  FIFO queue — `queue()` can now be called multiple times to preload per-call responses.
+- Six JSON fixture files under `tests/Fixtures/` documenting real CiviCRM 5.x response
+  shapes for contacts, tags, groups, and custom fields.
+
 ## [0.2.0] - 2026-06-03
 
 ### Added
@@ -48,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Continuous integration workflow running the full quality suite on PHP 8.3 and 8.4.
 - `CONTRIBUTING.md` and this changelog.
 
-[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/woduda/civicrm-php/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/woduda/civicrm-php/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/woduda/civicrm-php/releases/tag/v0.1.0

@@ -17,6 +17,11 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
     - [Arbitrary entities](#arbitrary-entities)
     - [CRUD methods](#crud-methods)
     - [Escape hatch (`raw`)](#escape-hatch-raw)
+- [Contact API](#contact-api)
+- [Activity API](#activity-api)
+- [Tag API](#tag-api)
+- [Group API](#group-api)
+- [Custom fields](#custom-fields)
 - [Query builder (`GetQuery`)](#query-builder-getquery)
     - [Operators](#operators)
     - [AND / OR grouping](#and--or-grouping)
@@ -122,11 +127,15 @@ builder objects directly — no `.toParams()` glue is needed.
 ### Typed entity shortcuts
 
 ```php
-$client->contacts();      // GenericApi for Contact
-$client->activities();    // GenericApi for Activity
-$client->tags();          // GenericApi for Tag
-$client->groups();        // GenericApi for Group
+$client->contacts();      // ContactApi  — typed Contact API with upsert, tag/group helpers
+$client->activities();    // ActivityApi — typed Activity API with logForContact helper
+$client->tags();          // TagApi      — get-or-create tags, tag a contact
+$client->groups();        // GroupApi    — get-or-create groups, manage membership
 ```
+
+All four typed APIs expose `getFields()` and `getActions()` in addition to their
+domain methods. See [Contact API](#contact-api), [Activity API](#activity-api),
+[Tag API](#tag-api), and [Group API](#group-api) for the full method reference.
 
 ### Arbitrary entities
 
@@ -188,6 +197,126 @@ $result = $client->raw('Contact', 'merge', [
     'other_id' => 2,
 ]);
 ```
+
+## Contact API
+
+`$client->contacts()` returns a `ContactApi` with domain-level helpers on top of
+basic CRUD:
+
+```php
+$contacts = $client->contacts();
+
+// Read
+$all   = $contacts->get(GetQuery::new()->where('contact_type', Operator::Equals, 'Individual'));
+$one   = $contacts->getById(42);         // returns array|null
+
+// Write
+$new   = $contacts->create(['contact_type' => 'Individual', 'first_name' => 'Jane']);
+$upd   = $contacts->update(42, ['last_name' => 'Doe']);
+```
+
+### Email upsert
+
+```php
+// Finds by email_primary.email; updates if found, creates (with email merged) if not.
+// ⚠ Not atomic — see source docblock for details.
+$contact = $contacts->upsertByEmail('jane@example.org', [
+    'first_name'   => 'Jane',
+    'contact_type' => 'Individual',
+]);
+```
+
+### Tag assignment
+
+```php
+// Resolves tag names to IDs (creates missing ones) then saves all at once.
+// Idempotent — safe to call multiple times.
+$contacts->withTags(42, ['Donor', 'VIP']);
+```
+
+### Group membership
+
+```php
+// Resolves group titles to IDs (creates missing ones) then saves memberships.
+$contacts->addToGroups(42, ['Newsletter', 'Volunteers']);
+```
+
+### Custom fields
+
+```php
+// Validates each field name via CustomFieldResolver, then runs a single update.
+// Throws ValidationException if a field doesn't exist.
+$contacts->setCustomFields(42, 'Wolontariat', [
+    'volunteer_status' => 'active',
+    'start_date'       => '2024-01-01',
+]);
+```
+
+## Activity API
+
+```php
+$activities = $client->activities();
+
+// Generic create
+$activities->create([
+    'activity_type_id.name' => 'Meeting',
+    'subject'               => 'Kickoff',
+]);
+
+// Convenience: link to a contact, default status = Completed
+$activities->logForContact(42, 'Phone Call', ['subject' => 'Intake call', 'duration' => 30]);
+
+// Returns a pre-filtered GetQuery — chain .select(), .limit() etc. as needed
+$query   = $activities->forContact(42)->select('id', 'subject')->limit(20);
+$results = $activities->get($query);
+```
+
+## Tag API
+
+```php
+$tags = $client->tags();
+
+// Returns ID of existing tag, or creates it and returns the new ID
+$tagId = $tags->ensureExists('VIP');
+
+// Ensures the tag exists, then creates an EntityTag (idempotent)
+$tags->tagContact(42, 'VIP');
+```
+
+## Group API
+
+```php
+$groups = $client->groups();
+
+// Returns ID of existing group, or creates it and returns the new ID
+$groupId = $groups->ensureExists('Newsletter');
+
+// Add / remove membership (removeContact updates status → 'Removed' for audit trail)
+$groups->addContact(42, $groupId);
+$groups->removeContact(42, $groupId);
+```
+
+## Custom fields
+
+In CiviCRM APIv4, custom fields are addressed as `"GroupName.field_name"` in both
+`select` arrays and `values` maps. `CustomFieldResolver` validates that a given
+combination exists and caches the result per instance:
+
+```php
+use Woduda\CiviCRM\Api\CustomFieldResolver;
+use Woduda\CiviCRM\Http\Transport;
+
+$resolver = new CustomFieldResolver(Transport::createDefault($config));
+
+// Returns 'Wolontariat.volunteer_status' if the field exists
+$key = $resolver->resolve('Wolontariat', 'volunteer_status');
+
+// Throws ValidationException if the field doesn't exist
+$resolver->resolve('Wolontariat', 'nonexistent'); // ❌
+```
+
+`ContactApi::setCustomFields()` uses a `CustomFieldResolver` internally — you do
+not need to instantiate it yourself when going through `$client->contacts()`.
 
 ## Query builder (`GetQuery`)
 
