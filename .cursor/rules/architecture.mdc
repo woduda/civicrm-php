@@ -1,0 +1,119 @@
+---
+description: Architecture rules for adding new entity APIs and extending the new layer
+globs: src/**/*.php
+alwaysApply: false
+---
+
+# Architecture — new vs legacy layer
+
+Two entry-point layers exist. **All new code must use the new layer.**
+
+## New layer (preferred)
+
+| Class | Path | Role |
+|---|---|---|
+| `CiviCrmClient` | `src/CiviCrmClient.php` | `final readonly` entry point; `::create(Config)` factory |
+| `TransportInterface` | `src/Contract/TransportInterface.php` | `send(entity, action, params): ApiResponse` |
+| `Transport` | `src/Http/Transport.php` | PSR-18 adapter; `createDefault(Config): self` |
+| `AbstractEntityApi` | `src/Api/AbstractEntityApi.php` | `abstract readonly`; 4 protected helpers |
+| `GenericApi` | `src/Api/GenericApi.php` | `final readonly extends AbstractEntityApi`; full CRUD |
+
+### Typed entity APIs (new layer)
+
+- `ContactApi` (`src/Api/ContactApi.php`) — `upsertByEmail`, `withTags`, `addToGroups`, `setCustomFields`
+- `ActivityApi` (`src/Api/ActivityApi.php`) — `logForContact`, `forContact`
+- `TagApi` (`src/Api/TagApi.php`) — `ensureExists`, `tagContact`
+- `GroupApi` (`src/Api/GroupApi.php`) — `ensureExists`, `addContact`, `removeContact`
+
+All four expose `getFields()` and `getActions()` as public methods.
+
+## Legacy layer (do not extend)
+
+- `Client` (`src/Client.php`) — PSR-18 HTTP transport, kept for backwards compat
+- `EntitiesApi` (`src/Api/EntitiesApi.php`) — abstract base for old typed subclasses
+- Old subclasses: `ContactsApi`, `ActivitiesApi`, `EmailsApi`, `PhonesApi`, `AddressesApi`, `EventsApi`, `ContributionsApi`, `ParticipantsApi`
+
+## How to add a new typed entity API
+
+1. Create `src/Api/{Entity}Api.php` extending `AbstractEntityApi`:
+
+```php
+declare(strict_types=1);
+
+namespace Woduda\CiviCRM\Api;
+
+final readonly class FooApi extends AbstractEntityApi
+{
+    public function __construct(TransportInterface $transport)
+    {
+        parent::__construct($transport, 'Foo');
+    }
+
+    public function get(GetQuery $query): array
+    {
+        return $this->executeGet($query);
+    }
+
+    // Override protected as public — Rector enforces #[\Override]
+    #[\Override]
+    public function getFields(): array
+    {
+        return parent::getFields();
+    }
+
+    #[\Override]
+    public function getActions(): array
+    {
+        return parent::getActions();
+    }
+}
+```
+
+2. Add a shortcut method on `CiviCrmClient`:
+
+```php
+public function foos(): FooApi
+{
+    return new FooApi($this->transport);
+}
+```
+
+3. Write tests using `civicrmNewClient()` + `SpyTransport` (no network).
+
+## Key coding patterns
+
+### where-coercion in GenericApi (`resolveWhere`)
+
+`GetQuery::toParams()` returns `array<string, mixed>`; PHPStan sees `['where' => mixed]`. Narrow safely:
+
+```php
+$params = $query->toParams();
+$where = is_array($params['where'] ?? null) ? $params['where'] : [];
+```
+
+### Immutable with-er in value objects
+
+```php
+private function with(?int $limit = null, ...): self
+{
+    return new self(limit: $limit ?? $this->limit, ...);
+}
+```
+
+Never mutate `$this`; always `return new self(...)`.
+
+### Named constructors
+
+```php
+// Correct
+ActionRequest::create('Contact', $values);
+GetQuery::new()->where(...);
+
+// Wrong — don't add overloaded constructors
+new ActionRequest('Contact', 'create', $values);
+```
+
+### Custom field addressing
+
+In CiviCRM APIv4, custom fields use dotted notation: `"GroupName.field_name"`.
+`CustomFieldResolver::resolve(string $group, string $field): string` validates existence and returns the full key. Throws `ValidationException` on unknown fields.

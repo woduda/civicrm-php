@@ -1,0 +1,105 @@
+---
+description: Testing rules and patterns for civicrm-php — Pest 3, SpyTransport, fixtures
+globs: tests/**/*.php
+alwaysApply: false
+---
+
+# Testing — civicrm-php
+
+Framework: **Pest 3**. All tests must be fully offline (no network).
+
+## Test helpers (`tests/Pest.php`)
+
+Two factory helpers are defined globally:
+
+```php
+// New layer — for transport-level tests (recommended for all new entity APIs)
+[$client, $spy] = civicrmNewClient();
+// $client  : CiviCrmClient
+// $spy     : SpyTransport (implements TransportInterface)
+
+// Legacy layer — for HTTP-level tests (old layer only)
+[$client, $mock] = civicrmClient();
+// $client  : Client
+// $mock    : MockClient (php-http/mock-client)
+```
+
+## SpyTransport
+
+Defined in `tests/Pest.php`. In-memory spy implementing `TransportInterface`.
+
+```php
+// Queue a response (consumed in FIFO order)
+$spy->queue(new ApiResponse(values: [['id' => 1, 'display_name' => 'Jane']], count: 1));
+
+// Assert what was dispatched
+expect($spy->calls)->toHaveCount(1);
+expect($spy->calls[0])->toMatchArray([
+    'entity' => 'Contact',
+    'action' => 'get',
+    'params' => ['limit' => 10],
+]);
+```
+
+## Test structure
+
+```
+tests/
+  Unit/           # pure logic, no I/O
+  Integration/    # cross-class flows (still offline — uses SpyTransport)
+  Fixtures/       # real CiviCRM APIv4 JSON responses (*.json)
+  Pest.php        # helpers, SpyTransport definition
+```
+
+## Rules
+
+- **No real HTTP** — every test must use `SpyTransport` (new layer) or `MockClient` (old layer)
+- Every **public method** gets at least one test, including error paths (4xx, 5xx, malformed JSON)
+- Use **datasets** for operator/edge-case matrices:
+
+```php
+dataset('operators', [
+    [Operator::Equals, '='],
+    [Operator::Like, 'LIKE'],
+]);
+
+it('serialises operator', function (Operator $op, string $expected) {
+    expect(GetQuery::new()->where('field', $op, 'val')->toParams())
+        ->toMatchArray(['where' => [['field', $expected, 'val']]]);
+})->with('operators');
+```
+
+- Load JSON fixtures for realistic response payloads:
+
+```php
+$fixture = json_decode(file_get_contents(__DIR__ . '/../Fixtures/contacts-get.json'), true);
+$spy->queue(new ApiResponse(values: $fixture['values'], count: $fixture['count']));
+```
+
+## Example test for a new entity API
+
+```php
+use Woduda\CiviCRM\Query\GetQuery;
+use Woduda\CiviCRM\Query\Operator;
+use Woduda\CiviCRM\Result\ApiResponse;
+
+it('dispatches correct entity and action on get', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $spy->queue(new ApiResponse(values: [['id' => 1]], count: 1));
+
+    $result = $client->foos()->get(GetQuery::new()->limit(5));
+
+    expect($result)->toBe([['id' => 1]]);
+    expect($spy->calls[0])->toMatchArray([
+        'entity' => 'Foo',
+        'action' => 'get',
+        'params' => ['limit' => 5],
+    ]);
+});
+```
+
+## Coverage and mutation targets
+
+- Line coverage >= 90% (`composer test`)
+- Mutation Score Indicator >= 80% (`composer mutate`)
+- Pest native `--mutate` runner — do **not** use Infection (incompatible with Pest 3 coverage XML)

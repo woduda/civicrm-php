@@ -1,0 +1,113 @@
+---
+description: GetQuery, ActionRequest, ChainBuilder — immutable builder API reference
+globs: src/Query/**/*.php
+alwaysApply: false
+---
+
+# Query builders
+
+All builders are **immutable**: every method returns a new instance. Never mutate state.
+
+## GetQuery
+
+Namespace: `Woduda\CiviCRM\Query\GetQuery`
+
+```php
+$query = GetQuery::new()               // named constructor, empty query
+    ->select('id', 'display_name')     // replaces select list
+    ->addSelect('email_primary.email') // appends to select list
+    ->where('contact_type', Operator::Equals, 'Individual')
+    ->orWhere('contact_type', Operator::Equals, 'Organization') // OR group with previous
+    ->whereIn('id', [1, 2, 3])
+    ->whereNull('deleted_date')
+    ->orderBy('display_name', 'DESC')  // throws ValidationException for invalid direction
+    ->limit(50)
+    ->offset(100)
+    ->groupBy('contact_type')
+    ->having('row_count', Operator::GreaterThan, 5)
+    ->toParams();                      // returns array<string, mixed>
+```
+
+### OR grouping
+
+`orWhere()` groups with the **previous** clause. Consecutive `orWhere()` calls extend the same OR group (Laravel-style):
+
+```php
+// Produces: where => [['OR', [['a','=',1],['a','=',2]]], ['b','=',3]]
+GetQuery::new()
+    ->where('a', Operator::Equals, 1)
+    ->orWhere('a', Operator::Equals, 2)
+    ->where('b', Operator::Equals, 3);
+```
+
+### Unary operators
+
+`IsNull` / `IsNotNull` omit the value from the clause:
+
+```php
+->where('deleted_date', Operator::IsNull)
+// → ['deleted_date', 'IS NULL']  (two-element, no value)
+```
+
+## Operator enum
+
+Namespace: `Woduda\CiviCRM\Query\Operator`
+
+| Case | APIv4 value |
+|---|---|
+| `Equals` / `NotEquals` | `=` / `!=` |
+| `GreaterThan` / `LessThan` | `>` / `<` |
+| `GreaterOrEqual` / `LessOrEqual` | `>=` / `<=` |
+| `Like` / `NotLike` | `LIKE` / `NOT LIKE` |
+| `In` / `NotIn` | `IN` / `NOT IN` |
+| `Between` / `NotBetween` | `BETWEEN` / `NOT BETWEEN` |
+| `IsNull` / `IsNotNull` | `IS NULL` / `IS NOT NULL` |
+| `Contains` | `CONTAINS` |
+
+`$op->requiresValue()` returns `false` for `IsNull` and `IsNotNull`.
+
+## ActionRequest
+
+Namespace: `Woduda\CiviCRM\Query\ActionRequest`
+
+Named constructors only — no direct `new ActionRequest(...)`:
+
+```php
+ActionRequest::create('Contact', ['contact_type' => 'Individual', 'first_name' => 'Jane']);
+ActionRequest::update('Contact', ['first_name' => 'Janet'], [['id', '=', 42]]);
+ActionRequest::save('Contact', [['first_name' => 'A'], ['first_name' => 'B']]);
+ActionRequest::delete('Contact', [['id', '=', 42]]);
+```
+
+`$request->toParams()` returns the APIv4 params array. `$request->entity` and `$request->action` are public readonly.
+
+### Chained calls
+
+Attach a single sub-call:
+
+```php
+$request = ActionRequest::create('Contact', ['first_name' => 'Jane'])
+    ->withChain('email', ActionRequest::create('Email', [
+        'contact_id' => '$id',
+        'email'      => 'jane@example.org',
+    ]));
+```
+
+Use `ChainBuilder` for multiple sub-calls:
+
+```php
+use Woduda\CiviCRM\Query\ChainBuilder;
+
+$chain = ChainBuilder::new()
+    ->create('email', 'Email', ['contact_id' => '$id', 'email' => 'jane@example.org'])
+    ->get('acts', 'Activity', GetQuery::new()->where('source_contact_id', Operator::Equals, '$id'));
+
+$request = ActionRequest::create('Contact', ['first_name' => 'Jane'])
+    ->withChainBuilder($chain);
+
+// Execute via raw():
+$client->raw($request->entity, $request->action, $request->toParams());
+```
+
+> A `GetQuery` passed directly to `withChain()` chains a `get` on the **parent's entity**.
+> For a `get` on a **different entity**, use `ChainBuilder::get()`.

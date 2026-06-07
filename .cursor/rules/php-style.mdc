@@ -1,0 +1,84 @@
+---
+description: PHP code style and PHPDoc rules for civicrm-php — PER-CS 2.0, PHPStan level max
+globs: src/**/*.php
+alwaysApply: false
+---
+
+# PHP style — civicrm-php
+
+## Code style
+
+- **PER-CS 2.0** via Laravel Pint (`composer cs` auto-fixes, `composer cs:check` validates)
+- `declare(strict_types=1);` — first line of every PHP file, after `<?php`
+- No `mixed` return types without a documented reason
+- No untyped properties; no implicit nullable parameters
+- Return types on every method, including `void`
+
+## PHPDoc
+
+PHPDoc on every **public** method:
+
+```php
+/**
+ * Short description in one sentence.
+ *
+ * Longer explanation only when the WHY is non-obvious.
+ *
+ * @param  array<string, mixed> $values
+ * @return array<mixed>
+ * @throws ValidationException  When X condition.
+ * @throws ApiException         On HTTP 4xx/5xx.
+ */
+public function create(array $values): array
+```
+
+- List every `@throws` for each exception type the method can raise (directly or transitively at the public boundary)
+- Generic array types: use `array<string, mixed>`, `list<string>`, `array<mixed>` as appropriate — avoid bare `array`
+- Do not write `@param` or `@return` for trivially obvious types (scalar-only, typed-object params)
+- No multi-paragraph or multi-line comment blocks — one short line max for inline comments
+
+## Static analysis
+
+- PHPStan level max + `phpstan/phpstan-strict-rules` + `treatPhpDocTypesAsCertain: false`
+- Narrow `mixed` access from arrays explicitly:
+  ```php
+  $where = is_array($params['where'] ?? null) ? $params['where'] : [];
+  ```
+- Use `#[\Override]` when widening `protected` to `public` in a child class (Rector enforces this)
+
+## Rector
+
+- `composer rector` (dry-run) must produce no changes
+- Key rules enforced: `#[\Override]`, PHP 8.x syntax upgrades, dead-code removal
+
+## Class shape rules
+
+| Pattern | Requirement |
+|---|---|
+| DTO / value object | `final readonly class` |
+| Abstract base for APIs | `abstract readonly class` |
+| Entity API concrete | `final readonly class extends AbstractEntityApi` |
+| Exception | `extends \RuntimeException implements CivicrmException` or `implements CivicrmException` |
+| Enum over constants | `enum Foo: string` backed enum |
+
+## Immutability (with-er pattern)
+
+```php
+// Correct
+public function withLimit(int $n): self
+{
+    return new self(..., limit: $n, ...);
+}
+
+// Wrong — never mutate $this
+public function setLimit(int $n): void
+{
+    $this->limit = $n;
+}
+```
+
+## Naming conventions
+
+- Constructors: `private function __construct`; expose via `public static function create/new/from`
+- Transport action strings: **all lowercase** (`'get'`, `'create'`, `'getfields'`, `'getactions'`)
+- Test helpers in `tests/Pest.php` use `camelCase` (`civicrmNewClient`, `civicrmClient`)

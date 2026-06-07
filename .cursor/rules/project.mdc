@@ -1,0 +1,66 @@
+---
+description: Core project context and non-negotiable rules for civicrm-php
+alwaysApply: true
+---
+
+# civicrm-php — project overview
+
+PSR-18 compatible client for **CiviCRM REST APIv4**. Framework-agnostic, immutable, fully typed. Mirrors Stripe-php SDK ergonomics. **Not** an ORM and **not** a Laravel package (the Laravel adapter is a separate repo).
+
+## Stack
+
+- PHP >= 8.3, target 8.4 — use 8.4 features where they improve clarity
+- PSR-4: `Woduda\CiviCRM\` → `src/`, `Woduda\CiviCRM\Tests\` → `tests/`
+- PER-CS 2.0 via Laravel Pint (`pint.json`, `per` preset)
+- PSR-7/17/18 for HTTP, PSR-3 for logging
+- HTTP client discovery via `php-http/discovery` — **no hard concrete HTTP client dep in production code**
+- Test-only HTTP stack: `nyholm/psr7` + `php-http/mock-client`
+- Conventional Commits for all commit messages
+
+## Non-negotiable code rules
+
+- `declare(strict_types=1);` at the top of **every** PHP file — no exceptions
+- All DTOs / value objects: `final readonly class`
+- No state mutation — builders return new instances (with-er pattern)
+- No `mixed` without an explicit documented reason
+- Full parameter and return types everywhere; no untyped properties
+- No global/static mutable state
+- Use enums instead of string/int constants
+- Named constructors over overloaded constructors (`MyClass::create(...)`)
+- Never throw `\Exception` or `\RuntimeException` directly — use the typed hierarchy under `src/Exception/`
+- English identifiers, English PHPDoc, English commit messages
+- `abstract readonly class` requires child classes to also be `readonly` (PHP 8.2+ enforced)
+
+## Exception hierarchy
+
+All library exceptions implement `CivicrmException` (marker interface). Concrete types:
+- `ApiException` — HTTP 4xx/5xx from CiviCRM
+- `ValidationException` — invalid builder input (bad orderBy direction, unknown custom field, etc.)
+
+Consumers can catch everything with `catch (CivicrmException $e)`.
+
+## Quality gates (MUST pass before every commit)
+
+```
+composer cs:check   # Pint PER-CS: 0 changes
+composer phpstan    # PHPStan level max + strict-rules: 0 errors
+composer rector     # dry-run clean
+composer test       # all green, line coverage >= 90 %
+composer mutate     # Pest native mutation testing, MSI >= 80 %
+composer qa         # runs all of the above
+```
+
+> Mutation testing uses **Pest's native `--mutate` runner**, NOT Infection.
+> Infection 0.29 is incompatible with Pest 3's coverage XML (`P\` prefix issue).
+> Do not reintroduce Infection.
+
+## CiviCRM APIv4 REST facts
+
+- Endpoint: `POST {base}/civicrm/ajax/api4/{Entity}/{Action}`
+- Required header: `X-Requested-With: XMLHttpRequest`
+- Auth: `Authorization: Bearer {token}` (preferred) or `api_key` + `key` params
+- Request body: form-encoded field `params` containing a JSON object
+- `where` shape: `[["field", "OPERATOR", value], ...]`
+- Success: `{"values": [...], "count": N}`
+- Error: non-2xx + `{"error_code": ..., "error_message": ...}`
+- Action names in transport calls: all **lowercase** (`get`, `create`, `getfields`, `getactions`, etc.)
