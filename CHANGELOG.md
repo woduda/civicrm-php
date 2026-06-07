@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-07
+
 ### Added
 
 - Typed entity DTOs: `Email`, `Phone`, `Address`, and input DTO `AddressData` under
@@ -16,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ContactApi` shortcuts: `updatePrimaryEmail()`, `updatePrimaryPhone()`,
   `updatePrimaryAddress()`.
 - `CiviCrmClient::emails()`, `phones()`, `addresses()` entry points.
-
 - `FromArrayInterface` and typed entity DTOs under `src/Entity/`:
   `Contact`, `Activity`, `Tag`, `Group` — each with `fromArray()`, `toArray()`, and
   `rawData` preserving the full APIv4 row.
@@ -111,7 +112,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Continuous integration workflow running the full quality suite on PHP 8.3 and 8.4.
 - `CONTRIBUTING.md` and this changelog.
 
-[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/woduda/civicrm-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/woduda/civicrm-php/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/woduda/civicrm-php/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/woduda/civicrm-php/releases/tag/v0.1.0
