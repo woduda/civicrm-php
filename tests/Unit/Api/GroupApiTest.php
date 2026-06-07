@@ -32,6 +32,45 @@ it('ensureExists creates the group when it does not exist and returns new id', f
         ->and($spy->calls[1]['params']['values'])->toBe(['title' => 'Volunteers']);
 });
 
+it('ensureExists sends select=[id] and limit=1 in the Group.get query', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['id' => 3]]));
+
+    (new GroupApi($spy))->ensureExists('Newsletter');
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id'])
+        ->and($spy->calls[0]['params']['limit'])->toBe(1);
+});
+
+it('ensureExists returns 0 when found row has no integer id', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['title' => 'Newsletter']])); // no id key
+
+    $id = (new GroupApi($spy))->ensureExists('Newsletter');
+
+    expect($id)->toBe(0);
+});
+
+it('ensureExists returns 0 when Group.create returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));  // Group.get → not found
+    $spy->queue(new ApiResponse(4, 0, []));  // Group.create → empty
+
+    $id = (new GroupApi($spy))->ensureExists('Ghost');
+
+    expect($id)->toBe(0);
+});
+
+it('ensureExists returns 0 when Group.create returns a row without an integer id', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));                        // Group.get → not found
+    $spy->queue(new ApiResponse(4, 1, [['title' => 'Ghost']]));    // Group.create → no id
+
+    $id = (new GroupApi($spy))->ensureExists('Ghost');
+
+    expect($id)->toBe(0);
+});
+
 it('addContact saves a GroupContact record with status=Added', function (): void {
     $spy = new SpyTransport();
 

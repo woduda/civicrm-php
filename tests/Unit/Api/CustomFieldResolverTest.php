@@ -53,3 +53,13 @@ it('resolve queries separately for different fields in the same group', function
 
     expect($spy->calls)->toHaveCount(2);
 });
+
+it('resolve sends select=[id,name] and limit=1 in the CustomField.get query', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['id' => 11, 'name' => 'volunteer_status']]));
+
+    (new CustomFieldResolver($spy))->resolve('Wolontariat', 'volunteer_status');
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id', 'name'])
+        ->and($spy->calls[0]['params']['limit'])->toBe(1);
+});

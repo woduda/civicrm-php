@@ -22,6 +22,12 @@ it('tolerates missing optional fields without throwing', function (): void {
         ->and($tag->usedFor)->toBeNull();
 });
 
+it('returns null for name when the value is not a string', function (): void {
+    $tag = Tag::fromArray(['id' => 7, 'name' => 123]);
+
+    expect($tag->name)->toBeNull();
+});
+
 it('round-trips mapped fields through toArray', function (): void {
     $tag = Tag::fromArray(fixtureFirstRow('tag-found.json'));
     $exported = $tag->toArray();

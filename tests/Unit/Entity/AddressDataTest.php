@@ -46,3 +46,11 @@ it('defaults missing optional fields to null', function (): void {
         ->and($data->country)->toBeNull()
         ->and($data->stateProvince)->toBeNull();
 });
+
+it('defaults missing required string fields to empty string', function (): void {
+    $data = AddressData::fromArray([]);
+
+    expect($data->streetAddress)->toBe('')
+        ->and($data->city)->toBe('')
+        ->and($data->postalCode)->toBe('');
+});

@@ -26,6 +26,12 @@ it('tolerates missing optional fields without throwing', function (): void {
         ->and($activity->status)->toBeNull();
 });
 
+it('returns null for id when the value is not an integer', function (): void {
+    $activity = Activity::fromArray(['id' => 'not-an-int']);
+
+    expect($activity->id)->toBeNull();
+});
+
 it('round-trips mapped fields through toArray', function (): void {
     $activity = Activity::fromArray(fixtureFirstRow('activity-single.json'));
     $exported = $activity->toArray();

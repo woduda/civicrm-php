@@ -54,3 +54,32 @@ it('is constructed from an ApiResponse', function (): void {
     expect($result->values)->toBe([['id' => 1], ['id' => 2]])
         ->and($result->count())->toBe(2);
 });
+
+it('re-indexes associative values array from a non-list API response', function (): void {
+    $response = new ApiResponse(4, 1, ['first' => ['id' => 1, 'name' => 'Jane']]);
+    $result = Result::fromApiResponse($response);
+
+    expect($result->values)->toBe([['id' => 1, 'name' => 'Jane']])
+        ->and($result->count())->toBe(1);
+});
+
+it('skips non-array rows and does not break iteration', function (): void {
+    $response = new ApiResponse(4, 2, ['scalar-skip', ['id' => 1]]);
+    $result = Result::fromApiResponse($response);
+
+    expect($result->values)->toBe([['id' => 1]])
+        ->and($result->count())->toBe(2);
+});
+
+it('preserves a server-reported count of zero', function (): void {
+    $response = new ApiResponse(4, 0, []);
+    $result = Result::fromApiResponse($response);
+
+    expect($result->count())->toBe(0);
+});
+
+it('clamps negative server-reported counts to zero', function (): void {
+    $result = Result::fromApiResponse(new ApiResponse(4, -1, []));
+
+    expect($result->count())->toBe(0);
+});

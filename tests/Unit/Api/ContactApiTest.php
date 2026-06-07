@@ -171,6 +171,15 @@ it('upsertByEmail creates a new contact with email merged when not found', funct
         ]);
 });
 
+it('upsertByEmail uses select=id and limit=1 in the lookup query', function (): void {
+    $spy = new SpyTransport();
+
+    makeContactApi($spy)->upsertByEmail('jane@example.org', []);
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id'])
+        ->and($spy->calls[0]['params']['limit'])->toBe(1);
+});
+
 // ---------------------------------------------------------------------------
 // withTags
 // ---------------------------------------------------------------------------
@@ -181,6 +190,27 @@ it('withTags does nothing when the tag list is empty', function (): void {
     makeContactApi($spy)->withTags(42, []);
 
     expect($spy->calls)->toHaveCount(0);
+});
+
+it('withTags sends select=[id,name] in the Tag.get query', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['id' => 7, 'name' => 'VIP']]));
+
+    makeContactApi($spy)->withTags(42, ['VIP']);
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id', 'name']);
+});
+
+it('withTags uses fallback tag_id 0 when Tag.create returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));  // Tag.get → not found
+    $spy->queue(new ApiResponse(4, 0, []));  // Tag.create → empty
+
+    makeContactApi($spy)->withTags(42, ['Ghost']);
+
+    /** @var list<array<string, mixed>> $records */
+    $records = $spy->calls[2]['params']['records'];
+    expect($records[0]['tag_id'])->toBe(0);
 });
 
 it('withTags assigns existing tags without creating new ones', function (): void {
@@ -267,6 +297,38 @@ it('addToGroups creates missing groups before saving GroupContact records', func
             'group_id' => 5,
             'status' => 'Added',
         ]]);
+});
+
+it('addToGroups sends select=[id,title] and correct where in the Group.get query', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['id' => 3, 'title' => 'Newsletter']]));
+
+    makeContactApi($spy)->addToGroups(42, ['Newsletter']);
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id', 'title'])
+        ->and($spy->calls[0]['params']['where'])->toBe([['title', 'IN', ['Newsletter']]]);
+});
+
+it('addToGroups sends correct values in Group.create', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));
+    $spy->queue(new ApiResponse(4, 1, [['id' => 5]]));
+
+    makeContactApi($spy)->addToGroups(42, ['NewGroup']);
+
+    expect($spy->calls[1]['params']['values'])->toBe(['title' => 'NewGroup']);
+});
+
+it('addToGroups uses fallback group_id 0 when Group.create returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));  // Group.get → not found
+    $spy->queue(new ApiResponse(4, 0, []));  // Group.create → empty
+
+    makeContactApi($spy)->addToGroups(42, ['Ghost']);
+
+    /** @var list<array<string, mixed>> $records */
+    $records = $spy->calls[2]['params']['records'];
+    expect($records[0]['group_id'])->toBe(0);
 });
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Woduda\CiviCRM\Api\PhoneApi;
+use Woduda\CiviCRM\Exception\ValidationException;
 use Woduda\CiviCRM\Entity\Phone;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
@@ -130,4 +131,36 @@ it('primary returns null when forContact is empty', function (): void {
     $spy->queue(new ApiResponse(4, 0, []));
 
     expect(makePhoneApi($spy)->primary(42))->toBeNull();
+});
+
+it('add defaults is_primary to false when not specified', function (): void {
+    $spy = new SpyTransport();
+    $payload = fixtureApiPayload('phone_single.json');
+    $spy->queue(new ApiResponse(4, $payload['count'], $payload['values']));
+
+    makePhoneApi($spy)->add(42, '+48999999999');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[0]['params']['values'];
+    expect($values['is_primary'])->toBeFalse();
+});
+
+it('primary skips non-primary phones and returns the primary one', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 2, [
+        ['id' => 202, 'contact_id' => 42, 'phone' => '+48111111111', 'is_primary' => false],
+        ['id' => 201, 'contact_id' => 42, 'phone' => '+48987654321', 'is_primary' => true],
+    ]));
+
+    $primary = makePhoneApi($spy)->primary(42);
+
+    expect($primary?->id)->toBe(201);
+});
+
+it('updateById throws ValidationException when update returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));
+
+    expect(fn() => makePhoneApi($spy)->updateById(201, ['phone' => '+48000000000']))
+        ->toThrow(ValidationException::class);
 });

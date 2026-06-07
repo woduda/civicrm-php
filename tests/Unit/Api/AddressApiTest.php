@@ -261,3 +261,127 @@ it('primary returns null when forContact is empty', function (): void {
 
     expect(makeAddressApi($spy)->primary(42))->toBeNull();
 });
+
+it('add defaults is_primary to false when not specified', function (): void {
+    $spy = new SpyTransport();
+    $payload = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, $payload['count'], $payload['values']));
+
+    makeAddressApi($spy)->add(42, 'Main St 1', 'Warsaw', '00-001');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[0]['params']['values'];
+    expect($values['is_primary'])->toBeFalse();
+});
+
+it('addFromData defaults is_primary to false when not specified', function (): void {
+    $spy = new SpyTransport();
+    $country = fixtureApiPayload('country_found.json');
+    $address = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, $country['count'], $country['values']));
+    $spy->queue(new ApiResponse(4, $address['count'], $address['values']));
+
+    $data = AddressData::fromArray([
+        'street_address' => 'Main St 1',
+        'city' => 'Warsaw',
+        'postal_code' => '00-001',
+        'country' => 'PL',
+    ]);
+
+    makeAddressApi($spy)->addFromData(42, $data);
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[1]['params']['values'];
+    expect($values['is_primary'])->toBeFalse();
+});
+
+it('primary skips non-primary addresses and returns the primary one', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 2, [
+        ['id' => 302, 'contact_id' => 42, 'street_address' => 'Work Blvd 5', 'city' => 'Krakow',
+            'postal_code' => '30-001', 'is_primary' => false],
+        ['id' => 301, 'contact_id' => 42, 'street_address' => 'Main St 1', 'city' => 'Warsaw',
+            'postal_code' => '00-001', 'is_primary' => true],
+    ]));
+
+    $primary = makeAddressApi($spy)->primary(42);
+
+    expect($primary?->id)->toBe(301);
+});
+
+it('updateFromData includes supplemental address when provided', function (): void {
+    $spy = new SpyTransport();
+    $payload = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, $payload['count'], $payload['values']));
+
+    $data = AddressData::fromArray([
+        'street_address' => 'Main St 1',
+        'city' => 'Warsaw',
+        'postal_code' => '00-001',
+        'supplemental_address_1' => 'Floor 2',
+    ]);
+
+    makeAddressApi($spy)->updateFromData(301, $data);
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[0]['params']['values'];
+    expect($values['supplemental_address_1'])->toBe('Floor 2');
+});
+
+it('updateFromData throws ValidationException when stateProvince set but country_id not yet resolved', function (): void {
+    $spy = new SpyTransport();
+
+    $data = AddressData::fromArray([
+        'street_address' => 'Main St 1',
+        'city' => 'Warsaw',
+        'postal_code' => '00-001',
+        'state_province' => 'Mazovia',
+    ]);
+
+    expect(fn() => makeAddressApi($spy)->updateFromData(301, $data))
+        ->toThrow(ValidationException::class);
+});
+
+it('updateFromData resolves state province when both country and state are provided', function (): void {
+    $spy = new SpyTransport();
+    $country = fixtureApiPayload('country_found.json');
+    $state = fixtureApiPayload('state_province_found.json');
+    $updated = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, $country['count'], $country['values']));
+    $spy->queue(new ApiResponse(4, $state['count'], $state['values']));
+    $spy->queue(new ApiResponse(4, $updated['count'], $updated['values']));
+
+    $data = AddressData::fromArray([
+        'street_address' => 'Main St 1',
+        'city' => 'Warsaw',
+        'postal_code' => '00-001',
+        'country' => 'PL',
+        'state_province' => 'Mazovia',
+    ]);
+
+    $address = makeAddressApi($spy)->updateFromData(301, $data);
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[2]['params']['values'];
+    expect($address)->toBeInstanceOf(Address::class)
+        ->and($values)->toHaveKey('state_province_id')
+        ->and($spy->calls[1]['entity'])->toBe('StateProvince')
+        ->and($spy->calls[1]['params']['where'])->toBe([
+            ['country_id', '=', 1072],
+            ['OR', [
+                ['name', '=', 'Mazovia'],
+                ['abbreviation', '=', 'Mazovia'],
+            ]],
+        ])
+        ->and($spy->calls[1]['params']['select'])->toBe(['id'])
+        ->and($spy->calls[1]['params']['limit'])->toBe(1);
+});
+
+it('getActions sends entity=Address and action=getactions', function (): void {
+    $spy = new SpyTransport();
+
+    makeAddressApi($spy)->getActions();
+
+    expect($spy->calls[0]['entity'])->toBe('Address')
+        ->and($spy->calls[0]['action'])->toBe('getactions');
+});

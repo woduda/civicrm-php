@@ -22,6 +22,12 @@ it('tolerates missing optional fields without throwing', function (): void {
         ->and($group->groupType)->toBeNull();
 });
 
+it('returns null for title when the value is not a string', function (): void {
+    $group = Group::fromArray(['id' => 3, 'title' => 456]);
+
+    expect($group->title)->toBeNull();
+});
+
 it('round-trips mapped fields through toArray', function (): void {
     $group = Group::fromArray(fixtureFirstRow('group-found.json'));
     $exported = $group->toArray();

@@ -35,6 +35,45 @@ it('ensureExists creates the tag when it does not exist and returns new id', fun
         ]);
 });
 
+it('ensureExists sends select=[id] and limit=1 in the Tag.get query', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['id' => 7]]));
+
+    (new TagApi($spy))->ensureExists('VIP');
+
+    expect($spy->calls[0]['params']['select'])->toBe(['id'])
+        ->and($spy->calls[0]['params']['limit'])->toBe(1);
+});
+
+it('ensureExists returns 0 when found row has no integer id', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 1, [['name' => 'VIP']])); // no id key
+
+    $id = (new TagApi($spy))->ensureExists('VIP');
+
+    expect($id)->toBe(0);
+});
+
+it('ensureExists returns 0 when Tag.create returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));  // Tag.get → not found
+    $spy->queue(new ApiResponse(4, 0, []));  // Tag.create → empty
+
+    $id = (new TagApi($spy))->ensureExists('Ghost');
+
+    expect($id)->toBe(0);
+});
+
+it('ensureExists returns 0 when Tag.create returns a row without an integer id', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));                       // Tag.get → not found
+    $spy->queue(new ApiResponse(4, 1, [['name' => 'Ghost']]));    // Tag.create → no id
+
+    $id = (new TagApi($spy))->ensureExists('Ghost');
+
+    expect($id)->toBe(0);
+});
+
 it('tagContact calls ensureExists then saves EntityTag', function (): void {
     $spy = new SpyTransport();
     $spy->queue(new ApiResponse(4, 1, [['id' => 7]])); // Tag.get → found

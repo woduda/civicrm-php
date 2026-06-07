@@ -175,3 +175,35 @@ it('add throws ValidationException when create returns no records', function ():
     expect(fn() => makeEmailApi($spy)->add(42, 'x@example.org'))
         ->toThrow(ValidationException::class, 'Email.create returned no records.');
 });
+
+it('add defaults is_primary to false when not specified', function (): void {
+    $spy = new SpyTransport();
+    $payload = fixtureApiPayload('email_single.json');
+    $spy->queue(new ApiResponse(4, $payload['count'], $payload['values']));
+
+    makeEmailApi($spy)->add(42, 'default@example.org');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[0]['params']['values'];
+    expect($values['is_primary'])->toBeFalse();
+});
+
+it('primary skips non-primary emails and returns the primary one', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 2, [
+        ['id' => 102, 'contact_id' => 42, 'email' => 'secondary@example.org', 'is_primary' => false],
+        ['id' => 101, 'contact_id' => 42, 'email' => 'primary@example.org', 'is_primary' => true],
+    ]));
+
+    $primary = makeEmailApi($spy)->primary(42);
+
+    expect($primary?->id)->toBe(101);
+});
+
+it('updateById throws ValidationException when update returns no records', function (): void {
+    $spy = new SpyTransport();
+    $spy->queue(new ApiResponse(4, 0, []));
+
+    expect(fn() => makeEmailApi($spy)->updateById(101, ['email' => 'x@example.org']))
+        ->toThrow(ValidationException::class);
+});
