@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Woduda\CiviCRM\Api;
 
 use Woduda\CiviCRM\Contract\TransportInterface;
+use Woduda\CiviCRM\Entity\Address;
+use Woduda\CiviCRM\Entity\AddressData;
 use Woduda\CiviCRM\Entity\Contact;
+use Woduda\CiviCRM\Entity\Email;
+use Woduda\CiviCRM\Entity\Phone;
 use Woduda\CiviCRM\Exception\ValidationException;
 use Woduda\CiviCRM\Query\ActionRequest;
 use Woduda\CiviCRM\Query\GetQuery;
@@ -310,5 +314,76 @@ final readonly class ContactApi extends AbstractEntityApi
         $this->executeAction(
             ActionRequest::update($this->entity, $resolved, [['id', '=', $contactId]]),
         );
+    }
+
+    /**
+     * Updates the primary email for a contact, creating one if none exists.
+     *
+     * Example:
+     * ```php
+     * $email = $api->updatePrimaryEmail(42, 'jane@example.org');
+     * ```
+     */
+    public function updatePrimaryEmail(int $contactId, string $email): Email
+    {
+        $emailApi = new EmailApi($this->transport);
+        $existing = $emailApi->primary($contactId);
+
+        if ($existing instanceof Email) {
+            return $emailApi->updateById($existing->id, ['email' => $email]);
+        }
+
+        return $emailApi->add($contactId, $email, isPrimary: true);
+    }
+
+    /**
+     * Updates the primary phone for a contact, creating one if none exists.
+     *
+     * Example:
+     * ```php
+     * $phone = $api->updatePrimaryPhone(42, '+48123456789', 'Mobile');
+     * ```
+     */
+    public function updatePrimaryPhone(int $contactId, string $phone, ?string $phoneType = 'Mobile'): Phone
+    {
+        $phoneApi = new PhoneApi($this->transport);
+        $existing = $phoneApi->primary($contactId);
+
+        if ($existing instanceof Phone) {
+            $values = ['phone' => $phone];
+
+            if ($phoneType !== null) {
+                $values['phone_type_id.name'] = $phoneType;
+            }
+
+            return $phoneApi->updateById($existing->id, $values);
+        }
+
+        return $phoneApi->add($contactId, $phone, $phoneType, isPrimary: true);
+    }
+
+    /**
+     * Updates the primary address for a contact, creating one if none exists.
+     *
+     * Example:
+     * ```php
+     * $address = $api->updatePrimaryAddress(42, AddressData::fromArray([
+     *     'street_address' => 'Main St 1',
+     *     'city' => 'Warsaw',
+     *     'postal_code' => '00-001',
+     *     'country' => 'PL',
+     * ]));
+     * ```
+     */
+    public function updatePrimaryAddress(int $contactId, AddressData $address): Address
+    {
+        $addressApi = new AddressApi($this->transport);
+        $existing = $addressApi->primary($contactId);
+
+        if ($existing instanceof Address) {
+            return $addressApi->updateFromData($existing->id, $address);
+        }
+
+        return $addressApi->addFromData($contactId, $address, isPrimary: true);
     }
 }

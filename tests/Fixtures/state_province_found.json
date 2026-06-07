@@ -1,0 +1,12 @@
+{
+    "_source": "CiviCRM 5.75 StateProvince.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 1060,
+            "name": "Mazovia",
+            "abbreviation": "MZ",
+            "country_id": 1072
+        }
+    ]
+}

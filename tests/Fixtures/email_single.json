@@ -1,0 +1,15 @@
+{
+    "_source": "CiviCRM 5.75 Email.create response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 103,
+            "contact_id": 42,
+            "email": "new@example.org",
+            "location_type_id.name": "Home",
+            "is_primary": true,
+            "is_billing": false,
+            "on_hold": false
+        }
+    ]
+}

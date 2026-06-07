@@ -6,10 +6,13 @@ namespace Woduda\CiviCRM;
 
 use Psr\Http\Client\ClientExceptionInterface;
 use Woduda\CiviCRM\Api\ActivityApi;
+use Woduda\CiviCRM\Api\AddressApi;
 use Woduda\CiviCRM\Api\ContactApi;
 use Woduda\CiviCRM\Api\CustomFieldResolver;
+use Woduda\CiviCRM\Api\EmailApi;
 use Woduda\CiviCRM\Api\GenericApi;
 use Woduda\CiviCRM\Api\GroupApi;
+use Woduda\CiviCRM\Api\PhoneApi;
 use Woduda\CiviCRM\Api\TagApi;
 use Woduda\CiviCRM\Contract\TransportInterface;
 use Woduda\CiviCRM\Exception\ApiException;
@@ -76,6 +79,32 @@ final readonly class CiviCrmClient
     public function groups(): GroupApi
     {
         return new GroupApi($this->transport);
+    }
+
+    // TODO(PR#13): add emails()/phones()/addresses() to ClientInterface when it lands.
+
+    /**
+     * Returns a typed {@see EmailApi} for the Email entity.
+     */
+    public function emails(): EmailApi
+    {
+        return new EmailApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see PhoneApi} for the Phone entity.
+     */
+    public function phones(): PhoneApi
+    {
+        return new PhoneApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see AddressApi} for the Address entity.
+     */
+    public function addresses(): AddressApi
+    {
+        return new AddressApi($this->transport);
     }
 
     /**

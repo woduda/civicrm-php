@@ -131,11 +131,15 @@ $client->contacts();      // ContactApi  — typed Contact API with upsert, tag/
 $client->activities();    // ActivityApi — typed Activity API with logForContact helper
 $client->tags();          // TagApi      — get-or-create tags, tag a contact
 $client->groups();        // GroupApi    — get-or-create groups, manage membership
+$client->emails();        // EmailApi    — typed Email API for contact sub-entity
+$client->phones();        // PhoneApi    — typed Phone API for contact sub-entity
+$client->addresses();    // AddressApi  — typed Address API for contact sub-entity
 ```
 
-All four typed APIs expose `getFields()` and `getActions()` in addition to their
+All typed APIs expose `getFields()` and `getActions()` in addition to their
 domain methods. See [Contact API](#contact-api), [Activity API](#activity-api),
-[Tag API](#tag-api), and [Group API](#group-api) for the full method reference.
+[Tag API](#tag-api), [Group API](#group-api), [Email API](#email-api),
+[Phone API](#phone-api), and [Address API](#address-api) for the full method reference.
 
 ### Arbitrary entities
 
@@ -253,6 +257,27 @@ $contacts->setCustomFields(42, 'Wolontariat', [
 ]);
 ```
 
+### Primary email, phone, and address shortcuts
+
+Convenience methods that update the primary sub-entity record, or create one
+with `is_primary = true` when none exists:
+
+```php
+$email = $contacts->updatePrimaryEmail(42, 'jane@example.org');
+
+$phone = $contacts->updatePrimaryPhone(42, '+48123456789', 'Mobile');
+
+$address = $contacts->updatePrimaryAddress(42, AddressData::fromArray([
+    'street_address' => 'Main St 1',
+    'city'           => 'Warsaw',
+    'postal_code'    => '00-001',
+    'country'        => 'PL',
+]));
+```
+
+These delegate to `EmailApi`, `PhoneApi`, and `AddressApi` — use those directly
+when you need full control (multiple locations, billing flags, etc.).
+
 ## Activity API
 
 ```php
@@ -297,6 +322,61 @@ $groups->addContact(42, $groupId);
 $groups->removeContact(42, $groupId);
 ```
 
+## Email API
+
+Email, Phone, and Address are separate CiviCRM entities with their own IDs.
+Each typed sub-entity API returns `Result<DTO>` and provides contact-scoped helpers.
+
+```php
+$emails = $client->emails();
+
+// All emails for a contact (primary first)
+$all = $emails->forContact(42);
+
+// Primary email, or null
+$primary = $emails->primary(42);
+
+// Mark as primary — CiviCRM unsets is_primary on other emails for that contact
+$emails->setPrimary(101);
+
+// Add / remove
+$email = $emails->add(42, 'jane@example.org', 'Home', isPrimary: true);
+$emails->remove(101);
+```
+
+## Phone API
+
+```php
+$phones = $client->phones();
+
+$all     = $phones->forContact(42);
+$primary = $phones->primary(42);
+$phones->setPrimary(201);
+$phone   = $phones->add(42, '+48123456789', 'Mobile', 'Home', isPrimary: true);
+$phones->remove(201);
+```
+
+## Address API
+
+```php
+$addresses = $client->addresses();
+
+$all     = $addresses->forContact(42);
+$primary = $addresses->primary(42);
+$addresses->setPrimary(301);
+
+// addFromData resolves country (ISO-2 or name) and state/province via Country.get
+$address = $addresses->addFromData(42, AddressData::fromArray([
+    'street_address' => 'Main St 1',
+    'city'           => 'Warsaw',
+    'postal_code'    => '00-001',
+    'country'        => 'PL',
+    'state_province' => 'Mazovia',
+]), isPrimary: true);
+
+$addresses->remove(301);
+```
+
 ## Custom fields
 
 In CiviCRM APIv4, custom fields are addressed as `"GroupName.field_name"` in both
@@ -318,6 +398,11 @@ $resolver->resolve('Wolontariat', 'nonexistent'); // ❌
 
 `ContactApi::setCustomFields()` uses a `CustomFieldResolver` internally — you do
 not need to instantiate it yourself when going through `$client->contacts()`.
+
+The resolver is entity-agnostic: custom groups extending Email, Phone, or Address
+(if configured in CiviCRM) use the same `"GroupName.field_name"` notation.
+Validate with `resolve()` and pass the dotted key in `GetQuery::select()` or
+create/update values.
 
 ## Query builder (`GetQuery`)
 

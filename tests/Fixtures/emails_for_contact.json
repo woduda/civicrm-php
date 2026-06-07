@@ -1,0 +1,24 @@
+{
+    "_source": "CiviCRM 5.75 Email.get response shape",
+    "count": 2,
+    "values": [
+        {
+            "id": 101,
+            "contact_id": 42,
+            "email": "jane@example.org",
+            "location_type_id.name": "Home",
+            "is_primary": true,
+            "is_billing": false,
+            "on_hold": false
+        },
+        {
+            "id": 102,
+            "contact_id": 42,
+            "email": "jane.work@example.org",
+            "location_type_id.name": "Work",
+            "is_primary": false,
+            "is_billing": false,
+            "on_hold": false
+        }
+    ]
+}

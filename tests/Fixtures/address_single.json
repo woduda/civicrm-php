@@ -1,0 +1,17 @@
+{
+    "_source": "CiviCRM 5.75 Address.create response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 303,
+            "contact_id": 42,
+            "street_address": "New St 10",
+            "city": "Gdansk",
+            "postal_code": "80-001",
+            "country_id": 1072,
+            "location_type_id.name": "Home",
+            "is_primary": true,
+            "is_billing": false
+        }
+    ]
+}

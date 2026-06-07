@@ -1,0 +1,30 @@
+{
+    "_source": "CiviCRM 5.75 Address.get response shape",
+    "count": 2,
+    "values": [
+        {
+            "id": 301,
+            "contact_id": 42,
+            "street_address": "Main St 1",
+            "supplemental_address_1": "Apt 2",
+            "city": "Warsaw",
+            "postal_code": "00-001",
+            "country_id": 1072,
+            "state_province_id": 1060,
+            "location_type_id.name": "Home",
+            "is_primary": true,
+            "is_billing": false
+        },
+        {
+            "id": 302,
+            "contact_id": 42,
+            "street_address": "Office Blvd 5",
+            "city": "Krakow",
+            "postal_code": "30-001",
+            "country_id": 1072,
+            "location_type_id.name": "Work",
+            "is_primary": false,
+            "is_billing": false
+        }
+    ]
+}

@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use Woduda\CiviCRM\Api\ContactApi;
 use Woduda\CiviCRM\Api\CustomFieldResolver;
+use Woduda\CiviCRM\Entity\Address;
+use Woduda\CiviCRM\Entity\AddressData;
 use Woduda\CiviCRM\Entity\Contact;
+use Woduda\CiviCRM\Entity\Email;
+use Woduda\CiviCRM\Entity\Phone;
 use Woduda\CiviCRM\Exception\ValidationException;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
@@ -303,4 +307,139 @@ it('setCustomFields resolves each field separately and sends one Contact.update'
             'Grp.field_a' => 1,
             'Grp.field_b' => 2,
         ]);
+});
+
+// ---------------------------------------------------------------------------
+// updatePrimaryEmail / updatePrimaryPhone / updatePrimaryAddress
+// ---------------------------------------------------------------------------
+
+it('updatePrimaryEmail updates existing primary email', function (): void {
+    $spy = new SpyTransport();
+    $forContact = fixtureApiPayload('emails_for_contact.json');
+    $updated = fixtureApiPayload('email_single.json');
+    $spy->queue(new ApiResponse(4, $forContact['count'], $forContact['values']));
+    $spy->queue(new ApiResponse(4, $updated['count'], $updated['values']));
+
+    $email = makeContactApi($spy)->updatePrimaryEmail(42, 'updated@example.org');
+
+    expect($email)->toBeInstanceOf(Email::class)
+        ->and($spy->calls)->toHaveCount(2)
+        ->and($spy->calls[0]['entity'])->toBe('Email')
+        ->and($spy->calls[0]['action'])->toBe('get')
+        ->and($spy->calls[1]['action'])->toBe('update')
+        ->and($spy->calls[1]['params']['values'])->toBe(['email' => 'updated@example.org'])
+        ->and($spy->calls[1]['params']['where'])->toBe([['id', '=', 101]]);
+});
+
+it('updatePrimaryEmail creates primary email when none exists', function (): void {
+    $spy = new SpyTransport();
+    $created = fixtureApiPayload('email_single.json');
+    $spy->queue(new ApiResponse(4, 0, []));
+    $spy->queue(new ApiResponse(4, $created['count'], $created['values']));
+
+    $email = makeContactApi($spy)->updatePrimaryEmail(42, 'new@example.org');
+
+    expect($email)->toBeInstanceOf(Email::class)
+        ->and($spy->calls)->toHaveCount(2)
+        ->and($spy->calls[0]['action'])->toBe('get')
+        ->and($spy->calls[1]['action'])->toBe('create');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[1]['params']['values'];
+    expect($values['is_primary'])->toBeTrue();
+});
+
+it('updatePrimaryPhone updates existing primary phone', function (): void {
+    $spy = new SpyTransport();
+    $forContact = fixtureApiPayload('phones_for_contact.json');
+    $updated = fixtureApiPayload('phone_single.json');
+    $spy->queue(new ApiResponse(4, $forContact['count'], $forContact['values']));
+    $spy->queue(new ApiResponse(4, $updated['count'], $updated['values']));
+
+    $phone = makeContactApi($spy)->updatePrimaryPhone(42, '+48999999999', 'Mobile');
+
+    expect($phone)->toBeInstanceOf(Phone::class)
+        ->and($spy->calls)->toHaveCount(2)
+        ->and($spy->calls[1]['action'])->toBe('update')
+        ->and($spy->calls[1]['params']['values'])->toBe([
+            'phone' => '+48999999999',
+            'phone_type_id.name' => 'Mobile',
+        ]);
+});
+
+it('updatePrimaryPhone creates primary phone when none exists', function (): void {
+    $spy = new SpyTransport();
+    $created = fixtureApiPayload('phone_single.json');
+    $spy->queue(new ApiResponse(4, 0, []));
+    $spy->queue(new ApiResponse(4, $created['count'], $created['values']));
+
+    $phone = makeContactApi($spy)->updatePrimaryPhone(42, '+48987654321');
+
+    expect($phone)->toBeInstanceOf(Phone::class)
+        ->and($spy->calls[1]['action'])->toBe('create');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[1]['params']['values'];
+    expect($values['is_primary'])->toBeTrue();
+});
+
+it('updatePrimaryPhone omits phone_type when null is passed', function (): void {
+    $spy = new SpyTransport();
+    $forContact = fixtureApiPayload('phones_for_contact.json');
+    $updated = fixtureApiPayload('phone_single.json');
+    $spy->queue(new ApiResponse(4, $forContact['count'], $forContact['values']));
+    $spy->queue(new ApiResponse(4, $updated['count'], $updated['values']));
+
+    makeContactApi($spy)->updatePrimaryPhone(42, '+48999999999', null);
+
+    expect($spy->calls[1]['params']['values'])->toBe(['phone' => '+48999999999']);
+});
+
+it('updatePrimaryAddress updates existing primary address', function (): void {
+    $spy = new SpyTransport();
+    $forContact = fixtureApiPayload('addresses_for_contact.json');
+    $country = fixtureApiPayload('country_found.json');
+    $updated = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, $forContact['count'], $forContact['values']));
+    $spy->queue(new ApiResponse(4, $country['count'], $country['values']));
+    $spy->queue(new ApiResponse(4, $updated['count'], $updated['values']));
+
+    $data = AddressData::fromArray([
+        'street_address' => 'New St 10',
+        'city' => 'Gdansk',
+        'postal_code' => '80-001',
+        'country' => 'PL',
+    ]);
+
+    $address = makeContactApi($spy)->updatePrimaryAddress(42, $data);
+
+    expect($address)->toBeInstanceOf(Address::class)
+        ->and($spy->calls[0]['action'])->toBe('get')
+        ->and($spy->calls[2]['action'])->toBe('update');
+});
+
+it('updatePrimaryAddress creates primary address when none exists', function (): void {
+    $spy = new SpyTransport();
+    $country = fixtureApiPayload('country_found.json');
+    $created = fixtureApiPayload('address_single.json');
+    $spy->queue(new ApiResponse(4, 0, []));
+    $spy->queue(new ApiResponse(4, $country['count'], $country['values']));
+    $spy->queue(new ApiResponse(4, $created['count'], $created['values']));
+
+    $data = AddressData::fromArray([
+        'street_address' => 'New St 10',
+        'city' => 'Gdansk',
+        'postal_code' => '80-001',
+        'country' => 'PL',
+    ]);
+
+    $address = makeContactApi($spy)->updatePrimaryAddress(42, $data);
+
+    expect($address)->toBeInstanceOf(Address::class)
+        ->and($spy->calls[1]['entity'])->toBe('Country')
+        ->and($spy->calls[2]['action'])->toBe('create');
+
+    /** @var array<string, mixed> $values */
+    $values = $spy->calls[2]['params']['values'];
+    expect($values['is_primary'])->toBeTrue();
 });

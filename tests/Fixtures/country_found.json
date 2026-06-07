@@ -1,0 +1,11 @@
+{
+    "_source": "CiviCRM 5.75 Country.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 1072,
+            "name": "Poland",
+            "iso_code": "PL"
+        }
+    ]
+}

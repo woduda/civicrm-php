@@ -1,0 +1,24 @@
+{
+    "_source": "CiviCRM 5.75 Phone.get response shape",
+    "count": 2,
+    "values": [
+        {
+            "id": 201,
+            "contact_id": 42,
+            "phone": "+48123456789",
+            "phone_type_id.name": "Mobile",
+            "location_type_id.name": "Home",
+            "is_primary": true,
+            "is_billing": false
+        },
+        {
+            "id": 202,
+            "contact_id": 42,
+            "phone": "+48221234567",
+            "phone_type_id.name": "Phone",
+            "location_type_id.name": "Work",
+            "is_primary": false,
+            "is_billing": false
+        }
+    ]
+}

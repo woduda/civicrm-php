@@ -48,6 +48,27 @@ it('groups() targets the Group entity', function (): void {
     expect($spy->calls[0]['entity'])->toBe('Group');
 });
 
+it('emails() targets the Email entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->emails()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Email');
+});
+
+it('phones() targets the Phone entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->phones()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Phone');
+});
+
+it('addresses() targets the Address entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->addresses()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Address');
+});
+
 it('raw() calls the transport with the given entity, action, and params', function (): void {
     [$client, $spy] = civicrmNewClient();
     $client->raw('Contact', 'get', ['limit' => 5]);

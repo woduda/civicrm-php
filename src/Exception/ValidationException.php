@@ -43,4 +43,53 @@ final class ValidationException extends InvalidArgumentException implements Civi
             $fieldName,
         ));
     }
+
+    /**
+     * Builds an exception for a country that could not be resolved.
+     *
+     * Example:
+     * ```php
+     * throw ValidationException::unknownCountry('XX');
+     * ```
+     */
+    public static function unknownCountry(string $country): self
+    {
+        return new self(sprintf(
+            'Country "%s" does not exist.',
+            $country,
+        ));
+    }
+
+    /**
+     * Builds an exception for a state/province that could not be resolved.
+     *
+     * Example:
+     * ```php
+     * throw ValidationException::unknownStateProvince('Unknown State');
+     * ```
+     */
+    public static function unknownStateProvince(string $stateProvince): self
+    {
+        return new self(sprintf(
+            'State/province "%s" does not exist.',
+            $stateProvince,
+        ));
+    }
+
+    /**
+     * Builds an exception when an API action returns no records.
+     *
+     * Example:
+     * ```php
+     * throw ValidationException::emptyApiResult('Email', 'create');
+     * ```
+     */
+    public static function emptyApiResult(string $entity, string $action): self
+    {
+        return new self(sprintf(
+            '%s.%s returned no records.',
+            $entity,
+            $action,
+        ));
+    }
 }

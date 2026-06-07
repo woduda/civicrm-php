@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Typed entity DTOs: `Email`, `Phone`, `Address`, and input DTO `AddressData` under
+  `src/Entity/`.
+- Typed sub-entity APIs: `EmailApi`, `PhoneApi`, `AddressApi` with `forContact()`,
+  `primary()`, `setPrimary()`, `add()`, and `remove()`.
+- `ContactApi` shortcuts: `updatePrimaryEmail()`, `updatePrimaryPhone()`,
+  `updatePrimaryAddress()`.
+- `CiviCrmClient::emails()`, `phones()`, `addresses()` entry points.
+
 - `FromArrayInterface` and typed entity DTOs under `src/Entity/`:
   `Contact`, `Activity`, `Tag`, `Group` — each with `fromArray()`, `toArray()`, and
   `rawData` preserving the full APIv4 row.
