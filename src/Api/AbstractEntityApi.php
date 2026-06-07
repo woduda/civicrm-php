@@ -7,15 +7,13 @@ namespace Woduda\CiviCRM\Api;
 use Woduda\CiviCRM\Contract\TransportInterface;
 use Woduda\CiviCRM\Query\ActionRequest;
 use Woduda\CiviCRM\Query\GetQuery;
+use Woduda\CiviCRM\Result\Result;
 
 /**
  * Base class for all CiviCRM APIv4 entity API classes.
  *
  * Concrete subclasses receive a {@see TransportInterface} and an entity name;
  * the four protected helpers map query/action objects to transport calls.
- *
- * TODO PR#5: executeGet and executeAction should return a typed Result object
- *            once the Result value object is introduced.
  */
 abstract readonly class AbstractEntityApi
 {
@@ -25,25 +23,27 @@ abstract readonly class AbstractEntityApi
     ) {}
 
     /**
-     * Executes a `get` query and returns the raw values array.
+     * Executes a `get` query and returns the response as a {@see Result}.
      *
-     * @return array<mixed>
-     * @TODO PR#5: change return type to Result once it is introduced
+     * @return Result<array<string, mixed>>
      */
-    protected function executeGet(GetQuery $query): array
+    protected function executeGet(GetQuery $query): Result
     {
-        return $this->transport->send($this->entity, 'get', $query->toParams())->values;
+        return Result::fromApiResponse(
+            $this->transport->send($this->entity, 'get', $query->toParams()),
+        );
     }
 
     /**
-     * Executes a write action and returns the raw values array.
+     * Executes a write action and returns the response as a {@see Result}.
      *
-     * @return array<mixed>
-     * @TODO PR#5: change return type to Result once it is introduced
+     * @return Result<array<string, mixed>>
      */
-    protected function executeAction(ActionRequest $request): array
+    protected function executeAction(ActionRequest $request): Result
     {
-        return $this->transport->send($this->entity, $request->action, $request->toParams())->values;
+        return Result::fromApiResponse(
+            $this->transport->send($this->entity, $request->action, $request->toParams()),
+        );
     }
 
     /**

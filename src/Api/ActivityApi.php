@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Woduda\CiviCRM\Api;
 
 use Woduda\CiviCRM\Contract\TransportInterface;
+use Woduda\CiviCRM\Entity\Activity;
 use Woduda\CiviCRM\Query\ActionRequest;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
+use Woduda\CiviCRM\Result\Result;
+use Woduda\CiviCRM\Result\TypedResult;
 
 /**
  * Typed API for the CiviCRM `Activity` entity.
@@ -32,16 +35,19 @@ final readonly class ActivityApi extends AbstractEntityApi
      * Creates a new activity with the given field values.
      *
      * @param  array<string, mixed> $values
-     * @return array<mixed>
+     * @return Result<Activity>
      *
      * Example:
      * ```php
      * $api->create(['activity_type_id.name' => 'Meeting', 'subject' => 'Kickoff']);
      * ```
      */
-    public function create(array $values): array
+    public function create(array $values): Result
     {
-        return $this->executeAction(ActionRequest::create($this->entity, $values));
+        return TypedResult::hydrate(
+            $this->executeAction(ActionRequest::create($this->entity, $values)),
+            Activity::class,
+        );
     }
 
     /**
@@ -52,14 +58,14 @@ final readonly class ActivityApi extends AbstractEntityApi
      * to override. Any key in `$extra` wins over the default values.
      *
      * @param  array<string, mixed> $extra  Optional field overrides
-     * @return array<mixed>
+     * @return Result<Activity>
      *
      * Example:
      * ```php
      * $api->logForContact(42, 'Phone Call', ['subject' => 'Intake call', 'duration' => 30]);
      * ```
      */
-    public function logForContact(int $contactId, string $activityType, array $extra = []): array
+    public function logForContact(int $contactId, string $activityType, array $extra = []): Result
     {
         $values = array_merge([
             'activity_type_id.name' => $activityType,
@@ -88,11 +94,11 @@ final readonly class ActivityApi extends AbstractEntityApi
     /**
      * Fetches activities matching the query.
      *
-     * @return array<mixed>
+     * @return Result<Activity>
      */
-    public function get(GetQuery $query): array
+    public function get(GetQuery $query): Result
     {
-        return $this->executeGet($query);
+        return TypedResult::hydrate($this->executeGet($query), Activity::class);
     }
 
     /**

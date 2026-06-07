@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use Woduda\CiviCRM\Api\ContactApi;
 use Woduda\CiviCRM\Api\CustomFieldResolver;
+use Woduda\CiviCRM\Entity\Contact;
 use Woduda\CiviCRM\Exception\ValidationException;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
 use Woduda\CiviCRM\Result\ApiResponse;
+use Woduda\CiviCRM\Result\Result;
 
 function makeContactApi(SpyTransport $spy): ContactApi
 {
@@ -29,13 +31,17 @@ it('get sends entity=Contact, action=get, and compiled params', function (): voi
         ->and($spy->calls[0]['params'])->toBe($query->toParams());
 });
 
-it('get returns the values array from the transport response', function (): void {
+it('get returns a Result of Contact DTOs from the transport response', function (): void {
     $spy = new SpyTransport();
     $spy->queue(new ApiResponse(4, 1, [['id' => 42, 'display_name' => 'Jane Doe']]));
 
     $result = makeContactApi($spy)->get(GetQuery::new());
 
-    expect($result)->toBe([['id' => 42, 'display_name' => 'Jane Doe']]);
+    expect($result)->toBeInstanceOf(Result::class)
+        ->and($result->count())->toBe(1)
+        ->and($result->first())->toBeInstanceOf(Contact::class)
+        ->and($result->first()?->id)->toBe(42)
+        ->and($result->first()?->displayName)->toBe('Jane Doe');
 });
 
 // ---------------------------------------------------------------------------
@@ -48,7 +54,9 @@ it('getById returns the first matching contact', function (): void {
 
     $contact = makeContactApi($spy)->getById(42);
 
-    expect($contact)->toBe(['id' => 42, 'display_name' => 'Jane Doe'])
+    expect($contact)->toBeInstanceOf(Contact::class)
+        ->and($contact?->id)->toBe(42)
+        ->and($contact?->displayName)->toBe('Jane Doe')
         ->and($spy->calls[0]['params']['where'])->toBe(
             GetQuery::new()->where('id', Operator::Equals, 42)->toParams()['where'],
         );
@@ -79,13 +87,16 @@ it('create sends action=create with the given values', function (): void {
         ]);
 });
 
-it('create returns the values array from the transport response', function (): void {
+it('create returns a Result of Contact DTOs from the transport response', function (): void {
     $spy = new SpyTransport();
     $spy->queue(new ApiResponse(4, 1, [['id' => 99, 'first_name' => 'Jane']]));
 
     $result = makeContactApi($spy)->create(['first_name' => 'Jane']);
 
-    expect($result)->toBe([['id' => 99, 'first_name' => 'Jane']]);
+    expect($result)->toBeInstanceOf(Result::class)
+        ->and($result->first())->toBeInstanceOf(Contact::class)
+        ->and($result->first()?->id)->toBe(99)
+        ->and($result->first()?->firstName)->toBe('Jane');
 });
 
 // ---------------------------------------------------------------------------

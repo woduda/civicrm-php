@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Woduda\CiviCRM\Api;
 
 use Woduda\CiviCRM\Contract\TransportInterface;
+use Woduda\CiviCRM\Entity\Contact;
 use Woduda\CiviCRM\Exception\ValidationException;
 use Woduda\CiviCRM\Query\ActionRequest;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
+use Woduda\CiviCRM\Result\Result;
+use Woduda\CiviCRM\Result\TypedResult;
 
 /**
  * Typed API for the CiviCRM `Contact` entity.
@@ -25,8 +28,8 @@ use Woduda\CiviCRM\Query\Operator;
  *     'contact_type' => 'Individual',
  * ]);
  *
- * $contacts->withTags($contact[0]['id'], ['Donor', 'VIP']);
- * $contacts->setCustomFields($contact[0]['id'], 'Wolontariat', ['volunteer_status' => 'active']);
+ * $contacts->withTags($contact->first()?->id ?? 0, ['Donor', 'VIP']);
+ * $contacts->setCustomFields($contact->first()?->id ?? 0, 'Wolontariat', ['volunteer_status' => 'active']);
  * ```
  */
 final readonly class ContactApi extends AbstractEntityApi
@@ -41,70 +44,71 @@ final readonly class ContactApi extends AbstractEntityApi
     /**
      * Fetches contacts matching the query.
      *
-     * @return array<mixed>
+     * @return Result<Contact>
      *
      * Example:
      * ```php
      * $api->get(GetQuery::new()->where('contact_type', Operator::Equals, 'Individual')->limit(10));
      * ```
      */
-    public function get(GetQuery $query): array
+    public function get(GetQuery $query): Result
     {
-        return $this->executeGet($query);
+        return TypedResult::hydrate($this->executeGet($query), Contact::class);
     }
 
     /**
      * Returns the first contact with the given ID, or `null` if not found.
-     *
-     * @return array<mixed>|null
      *
      * Example:
      * ```php
      * $contact = $api->getById(42);
      * ```
      */
-    public function getById(int $id): ?array
+    public function getById(int $id): ?Contact
     {
-        $rows = $this->executeGet(
-            GetQuery::new()->where('id', Operator::Equals, $id)->limit(1),
-        );
-
-        $first = $rows[0] ?? null;
-
-        return is_array($first) ? $first : null;
+        return TypedResult::hydrate(
+            $this->executeGet(GetQuery::new()->where('id', Operator::Equals, $id)->limit(1)),
+            Contact::class,
+        )->first();
     }
 
     /**
      * Creates a new contact with the given field values.
      *
      * @param  array<string, mixed> $values
-     * @return array<mixed>
+     * @return Result<Contact>
      *
      * Example:
      * ```php
      * $api->create(['contact_type' => 'Individual', 'first_name' => 'Jane']);
      * ```
      */
-    public function create(array $values): array
+    public function create(array $values): Result
     {
-        return $this->executeAction(ActionRequest::create($this->entity, $values));
+        return TypedResult::hydrate(
+            $this->executeAction(ActionRequest::create($this->entity, $values)),
+            Contact::class,
+        );
     }
 
     /**
      * Updates the contact identified by `$id` with the given field values.
      *
      * @param  array<string, mixed> $values
-     * @return array<mixed>
+     * @return Result<Contact>
      *
      * Example:
      * ```php
      * $api->update(42, ['last_name' => 'Doe']);
      * ```
      */
-    public function update(int $id, array $values): array
+    public function update(int $id, array $values): Result
     {
-        return $this->executeAction(
-            ActionRequest::update($this->entity, $values, [['id', '=', $id]]),
+        return TypedResult::hydrate(
+            $this->executeAction(
+                ActionRequest::update($this->entity, $values, [['id', '=', $id]]),
+            ),
+            Contact::class,
         );
     }
 
@@ -119,14 +123,14 @@ final readonly class ContactApi extends AbstractEntityApi
      * supports the `match` parameter.
      *
      * @param  array<string, mixed> $values
-     * @return array<mixed>
+     * @return Result<Contact>
      *
      * Example:
      * ```php
      * $api->upsertByEmail('jane@example.org', ['first_name' => 'Jane', 'contact_type' => 'Individual']);
      * ```
      */
-    public function upsertByEmail(string $email, array $values): array
+    public function upsertByEmail(string $email, array $values): Result
     {
         $existing = $this->transport->send('Contact', 'get', [
             'where' => [['email_primary.email', '=', $email]],

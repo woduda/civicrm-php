@@ -75,7 +75,7 @@ $contacts = $client->contacts()->get(
 );
 
 foreach ($contacts as $contact) {
-    echo $contact['display_name'], PHP_EOL;
+    echo $contact->displayName, PHP_EOL;
 }
 ```
 
@@ -148,15 +148,16 @@ $client->entity('OptionValue')->create(['label' => 'VIP', 'option_group_id' => 1
 
 ### CRUD methods
 
-All CRUD methods return the values array (the equivalent of `ApiResponse->values`):
+Typed entity APIs (`contacts()`, `activities()`) return a `Result` of typed DTOs.
+`GenericApi` (`entity()`) still returns the raw values array.
 
 ```php
-// Read
+// Read — Result<Contact>
 $contacts = $client->contacts()->get(
     GetQuery::new()->where('last_name', Operator::Equals, 'Smith')->limit(50),
 );
 
-// Create — returns the created record(s)
+// Create — Result<Contact>
 $new = $client->contacts()->create([
     'contact_type' => 'Individual',
     'first_name'   => 'Jane',
@@ -208,7 +209,7 @@ $contacts = $client->contacts();
 
 // Read
 $all   = $contacts->get(GetQuery::new()->where('contact_type', Operator::Equals, 'Individual'));
-$one   = $contacts->getById(42);         // returns array|null
+$one   = $contacts->getById(42);         // returns Contact|null
 
 // Write
 $new   = $contacts->create(['contact_type' => 'Individual', 'first_name' => 'Jane']);

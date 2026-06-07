@@ -1,0 +1,13 @@
+{
+    "_source": "CiviCRM 5.75 Activity.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 101,
+            "subject": "Intake call",
+            "activity_type_id.name": "Phone Call",
+            "source_contact_id": 42,
+            "status_id.name": "Completed"
+        }
+    ]
+}

@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use Woduda\CiviCRM\Api\ActivityApi;
+use Woduda\CiviCRM\Entity\Activity;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
 use Woduda\CiviCRM\Result\ApiResponse;
+use Woduda\CiviCRM\Result\Result;
 
 it('get sends entity=Activity, action=get, and compiled params', function (): void {
     $spy = new SpyTransport();
@@ -18,13 +20,16 @@ it('get sends entity=Activity, action=get, and compiled params', function (): vo
         ->and($spy->calls[0]['params'])->toBe($query->toParams());
 });
 
-it('get returns the values from the transport response', function (): void {
+it('get returns a Result of Activity DTOs from the transport response', function (): void {
     $spy = new SpyTransport();
     $spy->queue(new ApiResponse(4, 1, [['id' => 1, 'subject' => 'Call']]));
 
     $result = (new ActivityApi($spy))->get(GetQuery::new());
 
-    expect($result)->toBe([['id' => 1, 'subject' => 'Call']]);
+    expect($result)->toBeInstanceOf(Result::class)
+        ->and($result->first())->toBeInstanceOf(Activity::class)
+        ->and($result->first()?->id)->toBe(1)
+        ->and($result->first()?->subject)->toBe('Call');
 });
 
 it('create sends action=create with values', function (): void {

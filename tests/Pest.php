@@ -82,6 +82,95 @@ function civicrmClient(): array
 }
 
 /**
+ * Loads the first values row from a JSON fixture under tests/Fixtures/.
+ *
+ * @return array<string, mixed>
+ */
+function fixtureFirstRow(string $filename): array
+{
+    $contents = file_get_contents(__DIR__ . '/Fixtures/' . $filename);
+
+    if ($contents === false) {
+        return [];
+    }
+
+    $decoded = json_decode($contents, true);
+
+    if (! is_array($decoded)) {
+        return [];
+    }
+
+    $values = $decoded['values'] ?? null;
+
+    if (! is_array($values)) {
+        return [];
+    }
+
+    $first = $values[0] ?? null;
+
+    if (! is_array($first)) {
+        return [];
+    }
+
+    $row = [];
+
+    foreach ($first as $key => $value) {
+        if (is_string($key)) {
+            $row[$key] = $value;
+        }
+    }
+
+    return $row;
+}
+
+/**
+ * Loads count and values from a JSON fixture under tests/Fixtures/.
+ *
+ * @return array{count: int<0, max>, values: list<array<string, mixed>>}
+ */
+function fixtureApiPayload(string $filename): array
+{
+    $contents = file_get_contents(__DIR__ . '/Fixtures/' . $filename);
+
+    if ($contents === false) {
+        return ['count' => 0, 'values' => []];
+    }
+
+    $decoded = json_decode($contents, true);
+
+    if (! is_array($decoded)) {
+        return ['count' => 0, 'values' => []];
+    }
+
+    $count = $decoded['count'] ?? null;
+    $rawValues = $decoded['values'] ?? null;
+    $values = [];
+
+    if (is_array($rawValues)) {
+        foreach ($rawValues as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $normalized = [];
+
+            foreach ($row as $key => $value) {
+                if (is_string($key)) {
+                    $normalized[$key] = $value;
+                }
+            }
+
+            $values[] = $normalized;
+        }
+    }
+
+    return [
+        'count' => is_int($count) ? max(0, $count) : 0,
+        'values' => $values,
+    ];
+}
+
+/**
  * Returns the URI of the last request captured by the mock client.
  */
 function lastRequestUri(MockClient $mock): string

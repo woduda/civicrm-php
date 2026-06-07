@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `FromArrayInterface` and typed entity DTOs under `src/Entity/`:
+  `Contact`, `Activity`, `Tag`, `Group` — each with `fromArray()`, `toArray()`, and
+  `rawData` preserving the full APIv4 row.
+- `Result` (`src/Result/Result.php`) — iterable, countable collection wrapping APIv4
+  `values` and server-reported `count`; supports `first()`, `isEmpty()`, `map()`,
+  `filter()`, and PHPStan `@template` generics.
+- `TypedResult::hydrate()` — hydrates raw `Result` rows into typed entity DTOs.
+
+### Changed
+
+- **Breaking:** `ContactApi::get()`, `create()`, `update()`, and `upsertByEmail()` now
+  return `Result<Contact>` instead of `array`.
+- **Breaking:** `ContactApi::getById()` now returns `?Contact` instead of `?array`.
+- **Breaking:** `ActivityApi::get()`, `create()`, and `logForContact()` now return
+  `Result<Activity>` instead of `array`.
+- Migration: replace `$rows[0]['id']` with `$result->first()?->id`; iterate typed
+  objects via `foreach ($result as $contact)`.
+- `GenericApi` CRUD methods still return `array` (unchanged public API).
+
 ## [0.3.0] - 2026-06-03
 
 ### Added

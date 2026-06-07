@@ -21,7 +21,7 @@ final readonly class GenericApi extends AbstractEntityApi
      */
     public function get(GetQuery $query): array
     {
-        return $this->executeGet($query);
+        return $this->executeGet($query)->values;
     }
 
     /**
@@ -32,7 +32,7 @@ final readonly class GenericApi extends AbstractEntityApi
      */
     public function create(array $values): array
     {
-        return $this->executeAction(ActionRequest::create($this->entity, $values));
+        return $this->executeAction(ActionRequest::create($this->entity, $values))->values;
     }
 
     /**
@@ -47,7 +47,7 @@ final readonly class GenericApi extends AbstractEntityApi
     {
         return $this->executeAction(
             ActionRequest::update($this->entity, $values, $this->resolveWhere($where)),
-        );
+        )->values;
     }
 
     /**
@@ -58,7 +58,7 @@ final readonly class GenericApi extends AbstractEntityApi
      */
     public function save(array $records): array
     {
-        return $this->executeAction(ActionRequest::save($this->entity, $records));
+        return $this->executeAction(ActionRequest::save($this->entity, $records))->values;
     }
 
     /**
@@ -72,7 +72,7 @@ final readonly class GenericApi extends AbstractEntityApi
     {
         return $this->executeAction(
             ActionRequest::delete($this->entity, $this->resolveWhere($where)),
-        );
+        )->values;
     }
 
     /**
