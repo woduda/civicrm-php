@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Woduda\CiviCRM\Api\EventApi;
 use Woduda\CiviCRM\Api\GenericApi;
+use Woduda\CiviCRM\Api\ParticipantApi;
 use Woduda\CiviCRM\CiviCrmClient;
 use Woduda\CiviCRM\Config;
 use Woduda\CiviCRM\Result\ApiResponse;
@@ -88,6 +90,32 @@ it('notes() targets the Note entity', function (): void {
     $client->notes()->getFields();
 
     expect($spy->calls[0]['entity'])->toBe('Note');
+});
+
+it('events() returns an EventApi instance', function (): void {
+    [$client] = civicrmNewClient();
+
+    expect($client->events())->toBeInstanceOf(EventApi::class);
+});
+
+it('events() targets the Event entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->events()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Event');
+});
+
+it('participants() returns a ParticipantApi instance', function (): void {
+    [$client] = civicrmNewClient();
+
+    expect($client->participants())->toBeInstanceOf(ParticipantApi::class);
+});
+
+it('participants() targets the Participant entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->participants()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Participant');
 });
 
 it('raw() calls the transport with the given entity, action, and params', function (): void {

@@ -1,0 +1,16 @@
+{
+  "_source": "CiviCRM 5.75 Participant.get response shape",
+  "count": 1,
+  "values": [
+    {
+      "id": 1,
+      "contact_id": 42,
+      "event_id": 10,
+      "status_id:name": "Registered",
+      "status_id": 1,
+      "role_id": 1,
+      "register_date": "2026-06-01 10:00:00",
+      "source": "Website registration"
+    }
+  ]
+}

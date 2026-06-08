@@ -22,6 +22,8 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
 - [Tag API](#tag-api)
 - [Group API](#group-api)
 - [Note API](#note-api)
+- [Event API](#event-api)
+- [Participant API](#participant-api)
 - [Custom fields](#custom-fields)
 - [Query builder (`GetQuery`)](#query-builder-getquery)
     - [Operators](#operators)
@@ -133,6 +135,8 @@ $client->activities();    // ActivityApi         — typed Activity API with log
 $client->tags();          // TagApi              — get-or-create tags, tag a contact
 $client->groups();        // GroupApi            — get-or-create groups, manage membership
 $client->notes();         // NoteApi             — contact notes (add, list, delete)
+$client->events();        // EventApi            — events with capacity and date filtering
+$client->participants();  // ParticipantApi      — event attendance lifecycle
 $client->emails();        // EmailApi            — typed Email API for contact sub-entity
 $client->phones();        // PhoneApi            — typed Phone API for contact sub-entity
 $client->addresses();     // AddressApi          — typed Address API for contact sub-entity
@@ -143,6 +147,7 @@ $client->relationshipTypes(); // RelationshipTypeApi — relationship type catal
 All typed APIs expose `getFields()` and `getActions()` in addition to their
 domain methods. See [Contact API](#contact-api), [Activity API](#activity-api),
 [Tag API](#tag-api), [Group API](#group-api), [Note API](#note-api),
+[Event API](#event-api), [Participant API](#participant-api),
 [Email API](#email-api), [Phone API](#phone-api), [Address API](#address-api),
 and [Relationship API](#relationship-api) for the full method reference.
 
@@ -730,6 +735,99 @@ $response->values;  // array — returned records
 $response->count;   // int — number of records reported by CiviCRM
 $response->version; // int — APIv4 version (4)
 ```
+
+## Event API
+
+`$client->events()` returns an `EventApi` for the CiviCRM `Event` entity.
+
+```php
+$events = $client->events();
+
+// Upcoming active events (ordered by start date)
+$next = $events->upcoming(5);
+
+// Events within a date range
+$q1 = $events->between(new DateTimeImmutable('2026-01-01'), new DateTimeImmutable('2026-03-31'));
+
+// Find by title
+$gala = $events->findByTitle('Annual Gala 2026');
+
+// Check capacity
+$isFull = $events->isFull(10);
+
+// Count participants (optionally filter by status)
+$total      = $events->participantCount(10);
+$registered = $events->participantCount(10, ParticipantStatus::Registered);
+```
+
+### `Event` DTO fields
+
+| Property           | Type                    | API field           |
+|--------------------|-------------------------|---------------------|
+| `id`               | `int`                   | `id`                |
+| `title`            | `string`                | `title`             |
+| `summary`          | `?string`               | `summary`           |
+| `description`      | `?string`               | `description`       |
+| `startDate`        | `DateTimeImmutable`     | `start_date`        |
+| `endDate`          | `?DateTimeImmutable`    | `end_date`          |
+| `eventTypeId`      | `int`                   | `event_type_id`     |
+| `isActive`         | `bool`                  | `is_active`         |
+| `isPublic`         | `bool`                  | `is_public`         |
+| `maxParticipants`  | `?int`                  | `max_participants`  |
+| `defaultRoleId`    | `?int`                  | `default_role_id`   |
+
+---
+
+## Participant API
+
+`$client->participants()` returns a `ParticipantApi` for the CiviCRM `Participant` entity.
+
+```php
+$participants = $client->participants();
+
+// Register a contact for an event
+$p = $participants->register(42, 10, ParticipantStatus::Registered, source: 'Website');
+
+// Lifecycle transitions
+$participants->markAttended($p->id);
+$participants->cancel($p->id, 'Travel conflict');   // creates a Follow Up activity
+$participants->checkIn($p->id, new DateTimeImmutable('2026-09-15 09:30:00')); // creates Check-in activity
+
+// Query
+$list  = $participants->forEvent(10, ParticipantStatus::Registered);
+$hist  = $participants->forContact(42);           // ordered by register_date DESC
+$stats = $participants->countByStatus(10);        // ['Registered' => 45, 'Attended' => 3]
+```
+
+### `Participant` DTO fields
+
+| Property       | Type                    | API field          |
+|----------------|-------------------------|--------------------|
+| `id`           | `int`                   | `id`               |
+| `contactId`    | `int`                   | `contact_id`       |
+| `eventId`      | `int`                   | `event_id`         |
+| `status`       | `ParticipantStatus`     | `status_id:name`   |
+| `roleId`       | `?int`                  | `role_id`          |
+| `registerDate` | `?DateTimeImmutable`    | `register_date`    |
+| `source`       | `?string`               | `source`           |
+
+### `ParticipantStatus` classification
+
+`ParticipantStatus` is a backed string enum. Values are the CiviCRM `name` field
+from the `participant_status` option group.
+
+Each status belongs to exactly one class:
+
+| Class    | Statuses                                              | Method           |
+|----------|-------------------------------------------------------|------------------|
+| Positive | `Registered`, `Attended`                              | `isPositive()`   |
+| Pending  | `PendingPayLater`, `OnWaitlist`, `AwaitingApproval`   | `isPending()`    |
+| Negative | `NoShow`, `Cancelled`, `Rejected`, `Expired`          | `isNegative()`   |
+
+**Positive** statuses count toward the event's `max_participants` cap.
+`EventApi::isFull()` compares the count of positive-class participants against this limit.
+
+---
 
 ## Error handling
 

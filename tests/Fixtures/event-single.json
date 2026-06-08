@@ -1,0 +1,19 @@
+{
+  "_source": "CiviCRM 5.75 Event.get response shape",
+  "count": 1,
+  "values": [
+    {
+      "id": 10,
+      "title": "Annual Gala 2026",
+      "summary": "Our flagship annual fundraising gala.",
+      "description": "Join us for an evening of celebration and giving.",
+      "start_date": "2026-09-15 18:00:00",
+      "end_date": "2026-09-15 23:00:00",
+      "event_type_id": 1,
+      "is_active": true,
+      "is_public": true,
+      "max_participants": 50,
+      "default_role_id": 1
+    }
+  ]
+}

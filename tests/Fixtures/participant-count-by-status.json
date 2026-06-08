@@ -1,0 +1,18 @@
+{
+  "_source": "CiviCRM 5.75 Participant.get groupBy status_id response shape",
+  "count": 3,
+  "values": [
+    {
+      "status_id:name": "Registered",
+      "COUNT(id)": 45
+    },
+    {
+      "status_id:name": "Attended",
+      "COUNT(id)": 3
+    },
+    {
+      "status_id:name": "Cancelled",
+      "COUNT(id)": 2
+    }
+  ]
+}

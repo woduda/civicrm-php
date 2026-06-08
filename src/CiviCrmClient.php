@@ -11,10 +11,12 @@ use Woduda\CiviCRM\Api\ContactApi;
 use Woduda\CiviCRM\Api\ContributionApi;
 use Woduda\CiviCRM\Api\CustomFieldResolver;
 use Woduda\CiviCRM\Api\EmailApi;
+use Woduda\CiviCRM\Api\EventApi;
 use Woduda\CiviCRM\Api\FinancialTypeResolver;
 use Woduda\CiviCRM\Api\GenericApi;
 use Woduda\CiviCRM\Api\GroupApi;
 use Woduda\CiviCRM\Api\NoteApi;
+use Woduda\CiviCRM\Api\ParticipantApi;
 use Woduda\CiviCRM\Api\PhoneApi;
 use Woduda\CiviCRM\Api\RelationshipApi;
 use Woduda\CiviCRM\Api\RelationshipTypeApi;
@@ -134,6 +136,22 @@ final readonly class CiviCrmClient
     public function notes(): NoteApi
     {
         return new NoteApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see EventApi} for the Event entity.
+     */
+    public function events(): EventApi
+    {
+        return new EventApi($this->transport, new SystemClock());
+    }
+
+    /**
+     * Returns a typed {@see ParticipantApi} for the Participant entity.
+     */
+    public function participants(): ParticipantApi
+    {
+        return new ParticipantApi($this->transport);
     }
 
     /**

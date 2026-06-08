@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-08
+
+### Added
+
+- `ClockInterface` (`src/Contract/ClockInterface.php`) — single-method contract
+  (`now(): DateTimeImmutable`) for injectable wall-clock time. `SystemClock`
+  (`src/SystemClock.php`) is the default production implementation.
+- `ParticipantStatus` backed string enum for the CiviCRM `participant_status` option
+  group (Registered, Attended, No-show, Cancelled, Pending from pay later, On waitlist,
+  Awaiting approval, Rejected, Expired). Provides `fromId(int)` for default CiviCRM
+  integer ID mapping and three classification methods:
+  - `isPositive()` — Registered, Attended (counted against `max_participants`).
+  - `isPending()` — Pending from pay later, On waitlist, Awaiting approval.
+  - `isNegative()` — No-show, Cancelled, Rejected, Expired.
+- Typed entity DTO `Event` under `src/Entity/` with `id`, `title`, `summary`,
+  `description`, `startDate` / `endDate` (`DateTimeImmutable`), `eventTypeId`,
+  `isActive`, `isPublic`, `maxParticipants`, and `defaultRoleId`.
+- Typed entity DTO `Participant` under `src/Entity/` with `id`, `contactId`,
+  `eventId`, `status` (`ParticipantStatus`), `roleId`, `registerDate`
+  (`?DateTimeImmutable`), and `source`. Status is hydrated from `status_id:name`
+  (string) or `status_id` (int) with a fallback to `Registered`.
+- Typed `EventApi`: `get(GetQuery)`, `getById(int)`, `findByTitle(string)`,
+  `upcoming(limit)` (filters `start_date > now` with injected clock for deterministic
+  tests), `between(from, to)`, `participantCount(eventId, ?status)` (single
+  `Participant.get` with `select=['row_count']`), `isFull(eventId)` (compares
+  positive-class participant count against `max_participants`; false when no cap).
+- Typed `ParticipantApi`: `get(GetQuery)`, `register(contactId, eventId, status,
+  roleId, source, customFields)`, `markAttended(participantId)`, `cancel(participantId,
+  ?reason)` (optionally creates a Follow Up activity with the reason),
+  `checkIn(participantId, ?at)` (alias of markAttended; optionally creates a Check-in
+  activity with the check-in timestamp), `forEvent(eventId, ?status)`,
+  `forContact(contactId)` (ordered by `register_date DESC`), `countByStatus(eventId)`
+  (single grouped transport call returning `array<string,int>` of status name → count).
+- `CiviCrmClient::events()` and `CiviCrmClient::participants()` entry points.
+
 ## [0.6.0] - 2026-06-08
 
 ### Added
