@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-08
+
+### Added
+
+- Typed entity DTO `Note` under `src/Entity/`, representing a CiviCRM `Note` record with
+  `id`, `entityTable`, `entityId`, `subject`, `note`, `privacy`, `modifiedDate`
+  (`DateTimeImmutable`), and `contactIdCreator`. Parses `modified_date` from the APIv4
+  `Y-m-d H:i:s` format; falls back to the Unix epoch when the field is absent or invalid.
+- Typed `NoteApi`: `addToContact(contactId, note, subject, privacy)` (creates a note
+  attached to a contact with `entity_table = 'civicrm_contact'`), `forContact(contactId)`
+  (returns `Result<Note>` ordered by `modified_date DESC`), `delete(noteId)`,
+  `get(GetQuery)` (escape hatch for arbitrary queries).
+- `CiviCrmClient::notes()` entry point.
+
 ## [0.5.0] - 2026-06-08
 
 ### Added
@@ -128,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Continuous integration workflow running the full quality suite on PHP 8.3 and 8.4.
 - `CONTRIBUTING.md` and this changelog.
 
-[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/woduda/civicrm-php/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/woduda/civicrm-php/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/woduda/civicrm-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/woduda/civicrm-php/compare/v0.2.0...v0.3.0

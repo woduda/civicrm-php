@@ -21,6 +21,7 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
 - [Activity API](#activity-api)
 - [Tag API](#tag-api)
 - [Group API](#group-api)
+- [Note API](#note-api)
 - [Custom fields](#custom-fields)
 - [Query builder (`GetQuery`)](#query-builder-getquery)
     - [Operators](#operators)
@@ -127,22 +128,23 @@ builder objects directly — no `.toParams()` glue is needed.
 ### Typed entity shortcuts
 
 ```php
-$client->contacts();      // ContactApi  — typed Contact API with upsert, tag/group helpers
-$client->activities();    // ActivityApi — typed Activity API with logForContact helper
-$client->tags();          // TagApi      — get-or-create tags, tag a contact
-$client->groups();        // GroupApi    — get-or-create groups, manage membership
-$client->emails();        // EmailApi    — typed Email API for contact sub-entity
-$client->phones();        // PhoneApi    — typed Phone API for contact sub-entity
-$client->addresses();     // AddressApi  — typed Address API for contact sub-entity
+$client->contacts();      // ContactApi          — typed Contact API with upsert, tag/group helpers
+$client->activities();    // ActivityApi         — typed Activity API with logForContact helper
+$client->tags();          // TagApi              — get-or-create tags, tag a contact
+$client->groups();        // GroupApi            — get-or-create groups, manage membership
+$client->notes();         // NoteApi             — contact notes (add, list, delete)
+$client->emails();        // EmailApi            — typed Email API for contact sub-entity
+$client->phones();        // PhoneApi            — typed Phone API for contact sub-entity
+$client->addresses();     // AddressApi          — typed Address API for contact sub-entity
 $client->relationships();     // RelationshipApi     — contact-to-contact relationships
 $client->relationshipTypes(); // RelationshipTypeApi — relationship type catalog / seeding
 ```
 
 All typed APIs expose `getFields()` and `getActions()` in addition to their
 domain methods. See [Contact API](#contact-api), [Activity API](#activity-api),
-[Tag API](#tag-api), [Group API](#group-api), [Email API](#email-api),
-[Phone API](#phone-api), [Address API](#address-api), and
-[Relationship API](#relationship-api) for the full method reference.
+[Tag API](#tag-api), [Group API](#group-api), [Note API](#note-api),
+[Email API](#email-api), [Phone API](#phone-api), [Address API](#address-api),
+and [Relationship API](#relationship-api) for the full method reference.
 
 ### Arbitrary entities
 
@@ -324,6 +326,48 @@ $groupId = $groups->ensureExists('Newsletter');
 $groups->addContact(42, $groupId);
 $groups->removeContact(42, $groupId);
 ```
+
+## Note API
+
+`$client->notes()` returns a `NoteApi` for the CiviCRM `Note` entity. Notes attach to
+any entity, but are most commonly linked to contacts (`entity_table = 'civicrm_contact'`).
+
+```php
+$notes = $client->notes();
+
+// Add a note to a contact (defaults: privacy = 'public', no subject)
+$note = $notes->addToContact(42, 'Called to confirm appointment.');
+
+// With subject and custom privacy
+$note = $notes->addToContact(42, 'Internal memo.', 'Follow-up', 'private');
+
+// All notes for a contact, most recently modified first
+foreach ($notes->forContact(42) as $note) {
+    echo $note->modifiedDate->format('Y-m-d'), ' — ', $note->note, PHP_EOL;
+}
+
+// Delete by ID
+$notes->delete($note->id);
+
+// Arbitrary query — escape hatch for more complex filtering
+$results = $notes->get(
+    GetQuery::new()->where('subject', Operator::Equals, 'Follow-up')->limit(10),
+);
+```
+
+### `Note` DTO fields
+
+| Property          | Type                    | CiviCRM field     |
+| ----------------- | ----------------------- | ----------------- |
+| `id`              | `int`                   | `id`              |
+| `entityTable`     | `string`                | `entity_table`    |
+| `entityId`        | `int`                   | `entity_id`       |
+| `subject`         | `?string`               | `subject`         |
+| `note`            | `string`                | `note`            |
+| `privacy`         | `?string`               | `privacy`         |
+| `modifiedDate`    | `DateTimeImmutable`     | `modified_date`   |
+| `contactIdCreator`| `?int`                  | `contact_id`      |
+| `rawData`         | `array<string, mixed>`  | full APIv4 row    |
 
 ## Relationship API
 
