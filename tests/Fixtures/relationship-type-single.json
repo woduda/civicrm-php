@@ -1,0 +1,14 @@
+{
+    "count": 1,
+    "values": [
+        {
+            "id": 5,
+            "name_a_b": "Employee of",
+            "name_b_a": "Employer of",
+            "label_a_b": "Employee of",
+            "label_b_a": "Employer of",
+            "contact_type_a": "Individual",
+            "contact_type_b": "Organization"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "count": 1,
+    "values": [
+        {
+            "id": 101,
+            "contact_id_a": 42,
+            "contact_id_b": 7,
+            "relationship_type_id": 5,
+            "start_date": "2024-01-15",
+            "end_date": "2026-01-01",
+            "is_active": true,
+            "description": "Primary reporting line",
+            "relationship_type_id.label_a_b": "Reports to",
+            "relationship_type_id.label_b_a": "Manages"
+        }
+    ]
+}

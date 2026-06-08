@@ -133,13 +133,16 @@ $client->tags();          // TagApi      — get-or-create tags, tag a contact
 $client->groups();        // GroupApi    — get-or-create groups, manage membership
 $client->emails();        // EmailApi    — typed Email API for contact sub-entity
 $client->phones();        // PhoneApi    — typed Phone API for contact sub-entity
-$client->addresses();    // AddressApi  — typed Address API for contact sub-entity
+$client->addresses();     // AddressApi  — typed Address API for contact sub-entity
+$client->relationships();     // RelationshipApi     — contact-to-contact relationships
+$client->relationshipTypes(); // RelationshipTypeApi — relationship type catalog / seeding
 ```
 
 All typed APIs expose `getFields()` and `getActions()` in addition to their
 domain methods. See [Contact API](#contact-api), [Activity API](#activity-api),
 [Tag API](#tag-api), [Group API](#group-api), [Email API](#email-api),
-[Phone API](#phone-api), and [Address API](#address-api) for the full method reference.
+[Phone API](#phone-api), [Address API](#address-api), and
+[Relationship API](#relationship-api) for the full method reference.
 
 ### Arbitrary entities
 
@@ -320,6 +323,53 @@ $groupId = $groups->ensureExists('Newsletter');
 // Add / remove membership (removeContact updates status → 'Removed' for audit trail)
 $groups->addContact(42, $groupId);
 $groups->removeContact(42, $groupId);
+```
+
+## Relationship API
+
+CiviCRM relationships are **directional and asymmetric**: one record links contact A
+to contact B under a single type, and that type reads with two different labels
+depending on the direction. For the classic "Reports to" / "Manages" type, when
+employee `#42` reports to manager `#7` (`contact_id_a = 42`, `contact_id_b = 7`):
+side A's label is "Reports to" and side B's is "Manages". The API keeps both sides
+explicit (`labelAToB` / `labelBToA`, `nameAToB` / `nameBToA`) rather than hiding the
+direction.
+
+```php
+$types = $client->relationshipTypes();
+
+// Idempotent get-or-create — the building block for a schema seeder
+$type = $types->ensureExists(
+    nameAToB: 'Reports to',
+    nameBToA: 'Manages',
+    labelAToB: 'Reports to',
+    labelBToA: 'Manages',
+    contactTypeA: 'Individual', // null = any contact type allowed on side A
+    contactTypeB: 'Individual',
+);
+
+// byName matches EITHER direction — both return the same type record
+$types->byName('Reports to'); // forward (A→B)
+$types->byName('Manages');    // reverse (B→A)
+
+$relationships = $client->relationships();
+
+// Create employee(42) → manager(7). Type may be the forward name or the type id —
+// both produce an identical Relationship.create request.
+$rel = $relationships->create(42, 7, 'Reports to', new DateTimeImmutable('2025-01-01'));
+
+// Every relationship the contact takes part in, on either side (A or B)
+foreach ($relationships->forContact(42) as $r) {
+    // $r->labelAToB === 'Reports to', $r->labelBToA === 'Manages'
+}
+
+// Pre-filtered, refinable query: ofType() returns a GetQuery
+$recent = $relationships->get(
+    $relationships->ofType('Reports to')->where('start_date', Operator::GreaterThan, '2025-01-01'),
+);
+
+// End a relationship: sets end_date and is_active = false
+$relationships->terminate($rel->id, new DateTimeImmutable('2026-01-01'));
 ```
 
 ## Email API

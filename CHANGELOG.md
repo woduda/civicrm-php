@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Typed entity DTOs `Relationship` and `RelationshipType` under `src/Entity/`, each
+  exposing both directions of a relationship explicitly (`*AToB` / `*BToA`,
+  `contact_id_a` / `contact_id_b`). `Relationship` parses `start_date` / `end_date`
+  into `?DateTimeImmutable`.
+- Typed `RelationshipTypeApi`: `all()` (memoized in memory), `byName()` (matches the
+  forward **or** reverse name of the same type), and idempotent `ensureExists()` for
+  schema seeding.
+- Typed `RelationshipApi`: `create()` (type by name or id), `terminate()`,
+  `forContact()` (returns relationships where the contact is side A **or** B), and
+  `ofType()` (pre-filtered `GetQuery` for further refinement).
+- `CiviCrmClient::relationships()` and `relationshipTypes()` entry points.
+
 ## [0.4.0] - 2026-06-07
 
 ### Added

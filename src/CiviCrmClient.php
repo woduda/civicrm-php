@@ -13,6 +13,8 @@ use Woduda\CiviCRM\Api\EmailApi;
 use Woduda\CiviCRM\Api\GenericApi;
 use Woduda\CiviCRM\Api\GroupApi;
 use Woduda\CiviCRM\Api\PhoneApi;
+use Woduda\CiviCRM\Api\RelationshipApi;
+use Woduda\CiviCRM\Api\RelationshipTypeApi;
 use Woduda\CiviCRM\Api\TagApi;
 use Woduda\CiviCRM\Contract\TransportInterface;
 use Woduda\CiviCRM\Exception\ApiException;
@@ -105,6 +107,22 @@ final readonly class CiviCrmClient
     public function addresses(): AddressApi
     {
         return new AddressApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see RelationshipApi} for the Relationship entity.
+     */
+    public function relationships(): RelationshipApi
+    {
+        return new RelationshipApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see RelationshipTypeApi} for the RelationshipType entity.
+     */
+    public function relationshipTypes(): RelationshipTypeApi
+    {
+        return new RelationshipTypeApi($this->transport);
     }
 
     /**
