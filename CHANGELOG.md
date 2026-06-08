@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-06-08
-
 ### Added
 
 - Typed entity DTO `Note` under `src/Entity/`, representing a CiviCRM `Note` record with
@@ -142,8 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Continuous integration workflow running the full quality suite on PHP 8.3 and 8.4.
 - `CONTRIBUTING.md` and this changelog.
 
-[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/woduda/civicrm-php/compare/v0.5.0...v0.6.0
+[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/woduda/civicrm-php/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/woduda/civicrm-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/woduda/civicrm-php/compare/v0.2.0...v0.3.0
