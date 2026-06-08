@@ -77,6 +77,22 @@ final class ValidationException extends InvalidArgumentException implements Civi
     }
 
     /**
+     * Builds an exception for a financial type that could not be resolved.
+     *
+     * Example:
+     * ```php
+     * throw ValidationException::unknownFinancialType('Donation');
+     * ```
+     */
+    public static function unknownFinancialType(string $name): self
+    {
+        return new self(sprintf(
+            'Financial type "%s" does not exist.',
+            $name,
+        ));
+    }
+
+    /**
      * Builds an exception when an API action returns no records.
      *
      * Example:

@@ -1,0 +1,66 @@
+{
+    "_source": "CiviCRM 5.75 Contribution.get response shape — multiple records for aggregation tests",
+    "count": 4,
+    "values": [
+        {
+            "id": 99,
+            "contact_id": 42,
+            "total_amount": 500.00,
+            "currency": "PLN",
+            "receive_date": "2026-05-01 12:00:00",
+            "contribution_status_id": 1,
+            "contribution_status_id:name": "Completed",
+            "financial_type_id": 1,
+            "source": null,
+            "invoice_number": null,
+            "trxn_id": null,
+            "payment_instrument_id": null,
+            "campaign_id": null
+        },
+        {
+            "id": 100,
+            "contact_id": 42,
+            "total_amount": 250.00,
+            "currency": "PLN",
+            "receive_date": "2026-01-15 09:00:00",
+            "contribution_status_id": 1,
+            "contribution_status_id:name": "Completed",
+            "financial_type_id": 1,
+            "source": null,
+            "invoice_number": null,
+            "trxn_id": null,
+            "payment_instrument_id": null,
+            "campaign_id": null
+        },
+        {
+            "id": 101,
+            "contact_id": 42,
+            "total_amount": 100.00,
+            "currency": "PLN",
+            "receive_date": "2024-06-10 08:00:00",
+            "contribution_status_id": 1,
+            "contribution_status_id:name": "Completed",
+            "financial_type_id": 1,
+            "source": null,
+            "invoice_number": null,
+            "trxn_id": null,
+            "payment_instrument_id": null,
+            "campaign_id": null
+        },
+        {
+            "id": 102,
+            "contact_id": 42,
+            "total_amount": 75.00,
+            "currency": "PLN",
+            "receive_date": "2023-03-20 14:30:00",
+            "contribution_status_id": 2,
+            "contribution_status_id:name": "Pending",
+            "financial_type_id": 1,
+            "source": null,
+            "invoice_number": null,
+            "trxn_id": null,
+            "payment_instrument_id": null,
+            "campaign_id": null
+        }
+    ]
+}

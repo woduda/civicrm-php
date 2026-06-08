@@ -369,6 +369,70 @@ $results = $notes->get(
 | `contactIdCreator`| `?int`                  | `contact_id`      |
 | `rawData`         | `array<string, mixed>`  | full APIv4 row    |
 
+## Contribution API
+
+Record and query donations. `recordOneTime()` resolves the financial type name to an
+integer ID automatically; `create()` is the low-level escape hatch for full control.
+
+```php
+$contributions = $client->contributions();
+
+// Record a completed donation
+$contribution = $contributions->recordOneTime(
+    contactId: 42,
+    amount: 500.00,
+    currency: 'PLN',
+    financialType: 'Donation',
+);
+
+// Low-level create (financial_type_id must be an int)
+$typeId = $client->financialTypes()->resolve('Donation'); // e.g. 1
+$contribution = $contributions->create([
+    'contact_id'                  => 42,
+    'total_amount'                => 100.00,
+    'currency'                    => 'PLN',
+    'financial_type_id'           => $typeId,
+    'contribution_status_id:name' => 'Completed',
+]);
+
+// All contributions for a contact (newest first)
+$history = $contributions->forContact(42);
+
+// Aggregated lifetime statistics (2 transport calls)
+$totals = $contributions->totalsForContact(42, 'PLN');
+echo $totals->lifetimeTotal;       // e.g. 925.0
+echo $totals->last12MonthsCount;   // e.g. 2
+
+// Mark a pending contribution completed
+$contributions->markCompleted($contribution->id, 'TXN-001');
+
+// Refund with optional reason (creates a Follow Up Activity on the contact)
+$contributions->refund($contribution->id, 'Duplicate payment');
+```
+
+### `Contribution` DTO fields
+
+| Property              | Type                    | CiviCRM field                  |
+| --------------------- | ----------------------- | ------------------------------ |
+| `id`                  | `int`                   | `id`                           |
+| `contactId`           | `int`                   | `contact_id`                   |
+| `totalAmount`         | `float`                 | `total_amount`                 |
+| `currency`            | `string`                | `currency`                     |
+| `receiveDate`         | `DateTimeImmutable`     | `receive_date`                 |
+| `status`              | `ContributionStatus`    | `contribution_status_id:name`  |
+| `financialTypeId`     | `int`                   | `financial_type_id`            |
+| `source`              | `?string`               | `source`                       |
+| `invoiceNumber`       | `?string`               | `invoice_number`               |
+| `trxnId`              | `?string`               | `trxn_id`                      |
+| `paymentInstrumentId` | `?int`                  | `payment_instrument_id`        |
+| `campaignId`          | `?int`                  | `campaign_id`                  |
+| `rawData`             | `array<string, mixed>`  | full APIv4 row                 |
+
+`ContributionStatus` is a backed string enum. Values are the CiviCRM
+`contribution_status` option_value names from a default installation.
+If your site customises these values, read the raw `contribution_status_id:name`
+from `$contribution->rawData` and use `ContributionStatus::tryFrom()`.
+
 ## Relationship API
 
 CiviCRM relationships are **directional and asymmetric**: one record links contact A

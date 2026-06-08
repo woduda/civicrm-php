@@ -1,0 +1,22 @@
+{
+    "_source": "CiviCRM 5.75 FinancialType.get response shape",
+    "count": 4,
+    "values": [
+        {
+            "id": 1,
+            "name": "Donation"
+        },
+        {
+            "id": 2,
+            "name": "Member Dues"
+        },
+        {
+            "id": 3,
+            "name": "Campaign Contribution"
+        },
+        {
+            "id": 4,
+            "name": "Event Fee"
+        }
+    ]
+}

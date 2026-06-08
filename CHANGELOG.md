@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Typed entity DTO `Contribution` under `src/Entity/`, representing a CiviCRM `Contribution`
+  record with `id`, `contactId`, `totalAmount`, `currency`, `receiveDate` (`DateTimeImmutable`),
+  `status` (`ContributionStatus` enum), `financialTypeId`, `source`, `invoiceNumber`, `trxnId`,
+  `paymentInstrumentId`, and `campaignId`. Hydrates status from `contribution_status_id:name`
+  (string) or `contribution_status_id` (int) with a fallback to `Pending`.
+- `ContributionStatus` backed string enum for the CiviCRM `contribution_status` option group
+  (Completed, Pending, Cancelled, Failed, InProgress, Overdue, Refunded, PartiallyPaid,
+  ChargebackReceived). Provides `fromId(int)` for default CiviCRM integer ID mapping.
+- `ContributionTotals` readonly DTO for aggregated donation statistics
+  (lifetime and last-12-months totals, counts, first/last contribution dates, currency).
+- `FinancialTypeResolver` — cached mapping of financial type name → integer ID via
+  `resolve(string)`, `resolveMany(array)`, and `clearCache()`. Throws `ValidationException`
+  when the type does not exist.
+- Typed `ContributionApi`: `get(GetQuery)`, `getById(int)`,
+  `recordOneTime(contactId, amount, currency, receiveDate, financialType, status, source, extra)`
+  (resolves financial type name automatically), `create(array)` (low-level, caller supplies
+  `financial_type_id`), `forContact(contactId)` (ordered by `receive_date DESC`),
+  `totalsForContact(contactId, currency)` (two aggregate transport calls), `completedSince(date)`,
+  `markCompleted(contributionId, trxnId, receivedDate)`, and `refund(contributionId, reason)`
+  (updates status; optionally creates a Follow Up activity with the reason).
+- `CiviCrmClient::contributions()` and `financialTypes()` entry points.
+- `ValidationException::unknownFinancialType(string)` named constructor.
+
 - Typed entity DTO `Note` under `src/Entity/`, representing a CiviCRM `Note` record with
   `id`, `entityTable`, `entityId`, `subject`, `note`, `privacy`, `modifiedDate`
   (`DateTimeImmutable`), and `contactIdCreator`. Parses `modified_date` from the APIv4

@@ -8,8 +8,10 @@ use Psr\Http\Client\ClientExceptionInterface;
 use Woduda\CiviCRM\Api\ActivityApi;
 use Woduda\CiviCRM\Api\AddressApi;
 use Woduda\CiviCRM\Api\ContactApi;
+use Woduda\CiviCRM\Api\ContributionApi;
 use Woduda\CiviCRM\Api\CustomFieldResolver;
 use Woduda\CiviCRM\Api\EmailApi;
+use Woduda\CiviCRM\Api\FinancialTypeResolver;
 use Woduda\CiviCRM\Api\GenericApi;
 use Woduda\CiviCRM\Api\GroupApi;
 use Woduda\CiviCRM\Api\NoteApi;
@@ -132,6 +134,25 @@ final readonly class CiviCrmClient
     public function notes(): NoteApi
     {
         return new NoteApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see ContributionApi} for the Contribution entity.
+     */
+    public function contributions(): ContributionApi
+    {
+        return new ContributionApi($this->transport, new FinancialTypeResolver($this->transport));
+    }
+
+    /**
+     * Returns a {@see FinancialTypeResolver} for resolving financial type names to IDs.
+     *
+     * Use this when you want to resolve type names independently before calling
+     * {@see ContributionApi::create()} with a pre-resolved `financial_type_id`.
+     */
+    public function financialTypes(): FinancialTypeResolver
+    {
+        return new FinancialTypeResolver($this->transport);
     }
 
     /**

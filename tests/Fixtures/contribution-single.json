@@ -1,0 +1,21 @@
+{
+    "_source": "CiviCRM 5.75 Contribution.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 99,
+            "contact_id": 42,
+            "total_amount": 500.00,
+            "currency": "PLN",
+            "receive_date": "2026-06-01 12:00:00",
+            "contribution_status_id": 1,
+            "contribution_status_id:name": "Completed",
+            "financial_type_id": 1,
+            "source": "Online donation",
+            "invoice_number": "INV-2026-001",
+            "trxn_id": "TXN-ABC123",
+            "payment_instrument_id": 1,
+            "campaign_id": null
+        }
+    ]
+}
