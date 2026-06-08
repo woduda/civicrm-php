@@ -12,6 +12,7 @@ use Woduda\CiviCRM\Api\CustomFieldResolver;
 use Woduda\CiviCRM\Api\EmailApi;
 use Woduda\CiviCRM\Api\GenericApi;
 use Woduda\CiviCRM\Api\GroupApi;
+use Woduda\CiviCRM\Api\NoteApi;
 use Woduda\CiviCRM\Api\PhoneApi;
 use Woduda\CiviCRM\Api\RelationshipApi;
 use Woduda\CiviCRM\Api\RelationshipTypeApi;
@@ -123,6 +124,14 @@ final readonly class CiviCrmClient
     public function relationshipTypes(): RelationshipTypeApi
     {
         return new RelationshipTypeApi($this->transport);
+    }
+
+    /**
+     * Returns a typed {@see NoteApi} for the Note entity.
+     */
+    public function notes(): NoteApi
+    {
+        return new NoteApi($this->transport);
     }
 
     /**

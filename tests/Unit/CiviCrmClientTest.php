@@ -83,6 +83,13 @@ it('relationshipTypes() targets the RelationshipType entity', function (): void 
     expect($spy->calls[0]['entity'])->toBe('RelationshipType');
 });
 
+it('notes() targets the Note entity', function (): void {
+    [$client, $spy] = civicrmNewClient();
+    $client->notes()->getFields();
+
+    expect($spy->calls[0]['entity'])->toBe('Note');
+});
+
 it('raw() calls the transport with the given entity, action, and params', function (): void {
     [$client, $spy] = civicrmNewClient();
     $client->raw('Contact', 'get', ['limit' => 5]);

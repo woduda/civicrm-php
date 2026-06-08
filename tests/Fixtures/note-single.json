@@ -1,0 +1,16 @@
+{
+    "_source": "CiviCRM 5.75 Note.get response shape",
+    "count": 1,
+    "values": [
+        {
+            "id": 17,
+            "entity_table": "civicrm_contact",
+            "entity_id": 42,
+            "subject": "Follow-up",
+            "note": "Called to confirm appointment.",
+            "privacy": "public",
+            "modified_date": "2026-06-08 10:00:00",
+            "contact_id": 1
+        }
+    ]
+}
