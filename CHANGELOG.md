@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-06-09
+
+### Changed
+
+- Updated `CLAUDE.md` architecture section to reflect current codebase: removed
+  stale TODO placeholders, documented all 13 typed entity APIs, resolvers
+  (`CustomFieldResolver`, `FinancialTypeResolver`, `RelationshipTypeCache`),
+  `AbstractContactSubEntityApi`, `TypedResult`, contracts, and entity DTOs.
+- Updated `README.md`: added Email, Phone, Address, Relationship, and Contribution
+  API sections to the table of contents; added `contributions()` and
+  `financialTypes()` to the typed-entity-shortcuts table; fixed CRUD section
+  (`update/save/delete` examples now use `entity()` / `GenericApi`, not
+  `contacts()`); corrected Responses section to show `Result<T>` for typed APIs
+  and `array<mixed>` for `GenericApi` / `raw()`.
+
 ## [0.7.0] - 2026-06-08
 
 ### Added
@@ -200,7 +215,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Continuous integration workflow running the full quality suite on PHP 8.3 and 8.4.
 - `CONTRIBUTING.md` and this changelog.
 
-[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/woduda/civicrm-php/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/woduda/civicrm-php/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/woduda/civicrm-php/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/woduda/civicrm-php/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/woduda/civicrm-php/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/woduda/civicrm-php/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/woduda/civicrm-php/compare/v0.2.0...v0.3.0
