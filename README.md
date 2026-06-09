@@ -21,9 +21,14 @@ CiviCRM APIv4 REST docs: <https://docs.civicrm.org/dev/en/latest/api/v4/rest/>
 - [Activity API](#activity-api)
 - [Tag API](#tag-api)
 - [Group API](#group-api)
+- [Email API](#email-api)
+- [Phone API](#phone-api)
+- [Address API](#address-api)
+- [Relationship API](#relationship-api)
 - [Note API](#note-api)
 - [Event API](#event-api)
 - [Participant API](#participant-api)
+- [Contribution API](#contribution-api)
 - [Custom fields](#custom-fields)
 - [Query builder (`GetQuery`)](#query-builder-getquery)
     - [Operators](#operators)
@@ -140,8 +145,10 @@ $client->participants();  // ParticipantApi      — event attendance lifecycle
 $client->emails();        // EmailApi            — typed Email API for contact sub-entity
 $client->phones();        // PhoneApi            — typed Phone API for contact sub-entity
 $client->addresses();     // AddressApi          — typed Address API for contact sub-entity
-$client->relationships();     // RelationshipApi     — contact-to-contact relationships
-$client->relationshipTypes(); // RelationshipTypeApi — relationship type catalog / seeding
+$client->relationships();     // RelationshipApi      — contact-to-contact relationships
+$client->relationshipTypes(); // RelationshipTypeApi  — relationship type catalog / seeding
+$client->contributions();     // ContributionApi      — record and query donations
+$client->financialTypes();    // FinancialTypeResolver — resolve type names to IDs
 ```
 
 All typed APIs expose `getFields()` and `getActions()` in addition to their
@@ -162,42 +169,51 @@ $client->entity('OptionValue')->create(['label' => 'VIP', 'option_group_id' => 1
 
 ### CRUD methods
 
-Typed entity APIs (`contacts()`, `activities()`) return a `Result` of typed DTOs.
-`GenericApi` (`entity()`) still returns the raw values array.
+Typed entity APIs (`contacts()`, `activities()`, …) return a `Result<T>` of typed DTOs.
+`GenericApi` (`entity()`) returns the raw `array<mixed>` values directly.
 
 ```php
-// Read — Result<Contact>
+// Typed read — Result<Contact> (iterable of Contact DTOs)
 $contacts = $client->contacts()->get(
     GetQuery::new()->where('last_name', Operator::Equals, 'Smith')->limit(50),
 );
 
-// Create — Result<Contact>
+// Typed create — Result<Contact>
 $new = $client->contacts()->create([
     'contact_type' => 'Individual',
     'first_name'   => 'Jane',
     'last_name'    => 'Doe',
 ]);
 
-// Update — $where accepts a GetQuery or a raw APIv4 where array
-$client->contacts()->update(
+// Typed update (ContactApi) — update by ID
+$client->contacts()->update(42, ['first_name' => 'Janet']);
+```
+
+`GenericApi` (`entity()`) provides `update/save/delete` with flexible `$where` arguments:
+
+```php
+// Generic update — $where accepts a GetQuery or a raw APIv4 where array
+$client->entity('Contact')->update(
     ['first_name' => 'Janet'],
     GetQuery::new()->where('id', Operator::Equals, 42),
 );
 // or:
-$client->contacts()->update(['first_name' => 'Janet'], [['id', '=', 42]]);
+$client->entity('Contact')->update(['first_name' => 'Janet'], [['id', '=', 42]]);
 
 // Save (bulk upsert)
-$client->contacts()->save([
+$client->entity('Contact')->save([
     ['id' => 1, 'do_not_email' => true],
     ['id' => 2, 'do_not_email' => true],
 ]);
 
 // Delete — $where accepts a GetQuery or a raw APIv4 where array
-$client->contacts()->delete(GetQuery::new()->where('id', Operator::Equals, 42));
+$client->entity('Contact')->delete(GetQuery::new()->where('id', Operator::Equals, 42));
 // or:
-$client->contacts()->delete([['id', '=', 42]]);
+$client->entity('Contact')->delete([['id', '=', 42]]);
+```
 
-// Metadata
+```php
+// Metadata (available on all typed and generic APIs)
 $fields  = $client->contacts()->getFields();   // array of field definitions
 $actions = $client->contacts()->getActions();  // array of available actions
 ```
@@ -714,12 +730,29 @@ $result = $client->raw($request->entity, $request->action, $request->toParams())
 
 ## Responses
 
-**`CiviCrmClient` methods** (`get`, `create`, `update`, `save`, `delete`,
-`getFields`, `getActions`, `raw`) return the values array directly:
+**Typed entity APIs** (`contacts()`, `activities()`, `notes()`, …) return a
+`Result<T>` — an immutable, iterable value object wrapping hydrated DTOs:
 
 ```php
-$contacts = $client->contacts()->get(GetQuery::new()->limit(5));
+$result = $client->contacts()->get(GetQuery::new()->limit(5));
+
+foreach ($result as $contact) {      // Contact DTOs
+    echo $contact->displayName;
+}
+
+$result->count;         // int   — count reported by CiviCRM
+$result->values;        // array — raw DTO array if needed
+$result->first();       // ?T    — first item, or null
+```
+
+**`GenericApi`** (`entity()`) and **`raw()`** return `array<mixed>` — the raw
+APIv4 values array — without hydration:
+
+```php
+$rows = $client->entity('Contact')->get(GetQuery::new()->limit(5));
 // [['id' => 1, 'display_name' => 'Jane Doe'], ...]
+
+$rows = $client->raw('Contact', 'merge', ['main_id' => 1, 'other_id' => 2]);
 ```
 
 **The low-level transport** returns an immutable `ApiResponse` value object when
@@ -731,9 +764,8 @@ use Woduda\CiviCRM\Http\Transport;
 $transport = Transport::createDefault($config);
 $response  = $transport->send('Contact', 'get', ['limit' => 5]);
 
-$response->values;  // array — returned records
-$response->count;   // int — number of records reported by CiviCRM
-$response->version; // int — APIv4 version (4)
+$response->values;  // array<mixed> — returned records
+$response->count;   // int         — number of records reported by CiviCRM
 ```
 
 ## Event API
