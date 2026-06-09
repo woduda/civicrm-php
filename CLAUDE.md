@@ -50,21 +50,64 @@ Two parallel entry-point layers exist in the codebase — the legacy one is kept
 backwards compatibility; all new entity APIs build on the new one.
 
 **New layer (preferred for all new code):**
-- `CiviCrmClient` (`src/CiviCrmClient.php`) — `final readonly` entry point; `::create(Config)` factory uses `Transport::createDefault`; `entity(string): GenericApi` for arbitrary entities; typed shortcuts (`contacts()`, `activities()`, `tags()`, `groups()`) are placeholders (TODO PR#4) that currently return `GenericApi`
+
+Entry point:
+- `CiviCrmClient` (`src/CiviCrmClient.php`) — `final readonly`; `::create(Config)` factory auto-discovers HTTP client via `Transport::createDefault`; `entity(string): GenericApi` escape hatch for any entity; `raw(entity, action, params): array` for one-off requests; typed shortcuts for all implemented entities (see below)
 - `TransportInterface` (`src/Contract/TransportInterface.php`) — `send(entity, action, params): ApiResponse`
-- `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter wrapping `Client`; `createDefault(Config): self`
-- `AbstractEntityApi` (`src/Api/AbstractEntityApi.php`) — `abstract readonly`; 4 protected helpers: `executeGet(GetQuery)`, `executeAction(ActionRequest)`, `getFields()`, `getActions()`; return `array` for now (TODO PR#5: return `Result`)
+- `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter; `createDefault(Config): self`
+
+Base classes:
+- `AbstractEntityApi` (`src/Api/AbstractEntityApi.php`) — `abstract readonly`; 4 helpers: `executeGet(GetQuery): Result`, `executeAction(ActionRequest): Result`, `getFields(): array`, `getActions(): array`
+- `AbstractContactSubEntityApi` (`src/Api/AbstractContactSubEntityApi.php`) — `abstract readonly extends AbstractEntityApi`; shared logic for contact sub-entities (Email, Phone, Address): `contactQuery(int): GetQuery`, `setPrimary(int)`, `remove(int)`, `updateById(int, array): FromArrayInterface`, `createRecord(array): FromArrayInterface`; requires `dtoClass(): class-string<FromArrayInterface>`
 - `GenericApi` (`src/Api/GenericApi.php`) — `final readonly extends AbstractEntityApi`; public `get/create/update/save/delete/getFields/getActions`
+
+Typed entity APIs (`final readonly extends AbstractEntityApi` unless noted):
+- `ContactApi` — `get/getById/create/update/upsertByEmail/withTags/addToGroups/setCustomFields/updatePrimaryEmail/updatePrimaryPhone/updatePrimaryAddress/getFields/getActions`; constructor takes `(TransportInterface, CustomFieldResolver)`
+- `ActivityApi` — `get/getById/create/forContact/getFields/getActions`
+- `TagApi` — `ensureExists/tagContact/getFields/getActions`
+- `GroupApi` — `ensureExists/addContact/removeContact/getFields/getActions`
+- `EmailApi` (`extends AbstractContactSubEntityApi`) — `get/forContact/primary/setPrimary/add/remove/updateById/getFields/getActions`
+- `PhoneApi` (`extends AbstractContactSubEntityApi`) — `get/forContact/primary/setPrimary/add/remove/updateById/getFields/getActions`
+- `AddressApi` (`extends AbstractContactSubEntityApi`) — `get/forContact/primary/setPrimary/addFromData/updateFromData/remove/getFields/getActions`
+- `RelationshipApi` — `get/create(contactIdA, contactIdB, type: string|int, startDate?, extra?)/terminate/forContact/ofType(typeName): GetQuery/getFields/getActions`
+- `RelationshipTypeApi` — `get/byName/getFields/getActions`
+- `NoteApi` — `get/addToContact/forContact/delete/getFields/getActions`
+- `EventApi` — constructor takes `(TransportInterface, ClockInterface)`; `get/getById/findByTitle/upcoming/between/participantCount/isFull/getFields/getActions`
+- `ParticipantApi` — `get/getById/register/forContact/forEvent/byStatus/markAttended/cancel/getFields/getActions`
+- `ContributionApi` — constructor takes `(TransportInterface, FinancialTypeResolver)`; `get/getById/recordOneTime/create/forContact/totalsForContact/completedSince/markCompleted/refund/getFields/getActions`
+
+Resolvers:
+- `CustomFieldResolver` (`src/Api/CustomFieldResolver.php`) — `resolve(groupName, fieldName): string` returns the dotted APIv4 key (`"GroupName.field_name"`); fetches and caches field definitions per group
+- `FinancialTypeResolver` (`src/Api/FinancialTypeResolver.php`) — `resolve(typeName): int` maps a human-readable financial type name to its integer ID; exposed via `CiviCrmClient::financialTypes()`
+- `RelationshipTypeCache` (`src/Api/RelationshipTypeCache.php`) — in-memory cache used internally by `RelationshipTypeApi`
+
+Results and hydration:
+- `Result<T>` (`src/Result/Result.php`) — generic iterable result; `values: array<T>`, `count: int`, `first(): ?T`
+- `TypedResult` (`src/Result/TypedResult.php`) — static utility; `hydrate(Result, class-string<T>): Result<T>` maps raw APIv4 rows through `T::fromArray()`
+- `ApiResponse` (`src/Result/ApiResponse.php`) — raw transport response; `values: array<mixed>`, `count: int`
+
+Contracts:
+- `TransportInterface` (`src/Contract/TransportInterface.php`) — `send(entity, action, params): ApiResponse`
+- `ClockInterface` (`src/Contract/ClockInterface.php`) — `now(): DateTimeImmutable`; implemented by `SystemClock` (`src/SystemClock.php`)
+- `FromArrayInterface` (`src/Entity/FromArrayInterface.php`) — `fromArray(array): static`; implemented by all entity DTOs
+
+Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
+- `Contact`, `Activity`, `Tag`, `Group`, `Email`, `Phone`, `Address`, `AddressData`, `Note`
+- `Relationship`, `RelationshipType`
+- `Event`, `Participant`
+- `Contribution`, `ContributionTotals`
+- Enums: `ContributionStatus`, `ParticipantStatus`
 
 **Legacy layer (do not extend):**
 - `Client` (`src/Client.php`) — PSR-18 HTTP transport; `sendRequest(uri, params): ApiResponse`
-- `EntitiesApi` (`src/Api/EntitiesApi.php`) — abstract base for old typed subclasses (ContactsApi, ActivitiesApi, etc.)
+- `EntitiesApi` (`src/Api/EntitiesApi.php`) — abstract base for old typed subclasses (`ContactsApi`, `ActivitiesApi`, `AddressesApi`, `EmailsApi`, `EventsApi`, `ParticipantsApi`, `PhonesApi`, `ContributionsApi`)
 
 **Coding notes for the new layer:**
 - `abstract readonly class` requires the child to also be `readonly` (PHP 8.2+ enforced)
 - When overriding a `protected` method as `public` in a child class, add `#[\Override]` — Rector enforces this
 - `resolveWhere(GetQuery|array): array` pattern for where-coercion: use `is_array($params['where'] ?? null)` to safely extract the where key from `GetQuery::toParams()` (PHPStan sees array access as `mixed`; `is_array` narrows it)
 - Action name convention in transport calls: all lowercase (`getfields`, `getactions`, `get`, `create`, etc.)
+- New entity constructors that need a resolver (e.g. `CustomFieldResolver`, `FinancialTypeResolver`) receive it as a second parameter; `CiviCrmClient` wires them up
 
 ## Testing
 
