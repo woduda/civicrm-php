@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\AuthenticationException;
 use Woduda\CiviCRM\Exception\RateLimitException;
 use Woduda\CiviCRM\Exception\TransportException;
@@ -77,13 +77,13 @@ it('decides retryability per exception type', function (Throwable $e, bool $expe
 })->with([
     'transport error' => [new TransportException('network down'), true],
     'rate limit' => [new RateLimitException('429', 0, 429, 1), true],
-    'server error 500' => [new ApiException('boom', 0, 500), true],
-    'server error 503' => [new ApiException('unavailable', 0, 503), true],
-    'server error 599' => [new ApiException('edge', 0, 599), true],
-    'client error 400' => [new ApiException('bad request', 0, 400), false],
-    'client error 404' => [new ApiException('not found', 0, 404), false],
+    'server error 500' => [new ApiErrorException('boom', 0, 500), true],
+    'server error 503' => [new ApiErrorException('unavailable', 0, 503), true],
+    'server error 599' => [new ApiErrorException('edge', 0, 599), true],
+    'client error 400' => [new ApiErrorException('bad request', 0, 400), false],
+    'client error 404' => [new ApiErrorException('not found', 0, 404), false],
     'authentication 401' => [new AuthenticationException('unauthorized', 0, 401), false],
     'validation' => [ValidationException::unknownCountry('XX'), false],
-    'api error without status' => [new ApiException('mystery'), false],
+    'api error without status' => [new ApiErrorException('mystery'), false],
     'unrelated throwable' => [new RuntimeException('???'), false],
 ]);

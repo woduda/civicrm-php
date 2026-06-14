@@ -890,7 +890,7 @@ $client = new CiviCrmClient($transport);
 
 Only transient failures are retried: transport-level (network) errors,
 `RateLimitException` (HTTP 429 — honoring the `Retry-After` header, capped at
-`maxDelayMs`), and `ApiException` with a 5xx status. Validation and authentication
+`maxDelayMs`), and `ApiErrorException` with a 5xx status. Validation and authentication
 errors are never retried. The default `NoRetry` strategy preserves single-attempt
 behavior.
 
@@ -904,7 +904,7 @@ Every exception thrown by the library implements `CivicrmException`, so you can
 catch the whole library with one type:
 
 ```php
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\AuthenticationException;
 use Woduda\CiviCRM\Exception\CivicrmException;
 use Woduda\CiviCRM\Exception\RateLimitException;
@@ -917,7 +917,7 @@ try {
     // HTTP 401/403 — credentials rejected; $e->httpStatus
 } catch (RateLimitException $e) {
     // HTTP 429 — $e->retryAfterSeconds carries the server hint (if any)
-} catch (ApiException $e) {
+} catch (ApiErrorException $e) {
     // Any other HTTP 4xx/5xx from CiviCRM: $e->getMessage() / $e->httpStatus
 } catch (ValidationException $e) {
     // Invalid builder input (e.g. a bad orderBy direction)
@@ -928,5 +928,9 @@ try {
 }
 ```
 
-`RateLimitException` and `AuthenticationException` extend `ApiException`, so an
-`ApiException` catch still covers them when you don't need the distinction.
+`RateLimitException` and `AuthenticationException` extend `ApiErrorException`, so an
+`ApiErrorException` catch still covers them when you don't need the distinction.
+
+> **Deprecation:** the former name `ApiException` is still available as an alias of
+> `ApiErrorException` (same class, so existing `catch (ApiException $e)` keeps working),
+> but it is deprecated and will be removed in 1.0 — migrate to `ApiErrorException`.

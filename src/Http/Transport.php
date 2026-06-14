@@ -10,7 +10,7 @@ use Psr\Log\LoggerInterface;
 use Woduda\CiviCRM\Client;
 use Woduda\CiviCRM\Config;
 use Woduda\CiviCRM\Contract\TransportInterface;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\TransportException;
 use Woduda\CiviCRM\Result\ApiResponse;
 use Woduda\CiviCRM\Retry\NoRetry;
@@ -56,7 +56,7 @@ final readonly class Transport implements TransportInterface
 
     /**
      * @param  array<string, mixed> $params
-     * @throws ApiException       On HTTP 4xx/5xx responses
+     * @throws ApiErrorException  On HTTP 4xx/5xx responses
      * @throws TransportException On transport-level (network) errors
      */
     public function send(string $entity, string $action, array $params = []): ApiResponse
@@ -75,7 +75,7 @@ final readonly class Transport implements TransportInterface
                 return $this->httpClient->sendRequest($entity . '/' . $action, $params);
             } catch (ClientExceptionInterface $e) {
                 $error = TransportException::fromThrowable($e);
-            } catch (ApiException $e) {
+            } catch (ApiErrorException $e) {
                 $error = $e;
             }
 
@@ -85,7 +85,7 @@ final readonly class Transport implements TransportInterface
                     'action' => $action,
                     'attempt' => $attempt,
                     'exception' => $error::class,
-                    'http_status' => $error instanceof ApiException ? $error->httpStatus : null,
+                    'http_status' => $error instanceof ApiErrorException ? $error->httpStatus : null,
                 ]);
 
                 throw $error;
@@ -99,7 +99,7 @@ final readonly class Transport implements TransportInterface
                 'attempt' => $attempt,
                 'delay_ms' => $delayMs,
                 'exception' => $error::class,
-                'http_status' => $error instanceof ApiException ? $error->httpStatus : null,
+                'http_status' => $error instanceof ApiErrorException ? $error->httpStatus : null,
             ]);
 
             ($this->sleeper)($delayMs);

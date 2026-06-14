@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Woduda\CiviCRM\Retry;
 
 use Throwable;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\AuthenticationException;
 use Woduda\CiviCRM\Exception\RateLimitException;
 use Woduda\CiviCRM\Exception\TransportException;
@@ -44,7 +44,7 @@ final readonly class ExponentialBackoff implements RetryStrategy
         return match (true) {
             $e instanceof ValidationException, $e instanceof AuthenticationException => false,
             $e instanceof RateLimitException, $e instanceof TransportException => true,
-            $e instanceof ApiException => $e->httpStatus !== null && $e->httpStatus >= 500 && $e->httpStatus < 600,
+            $e instanceof ApiErrorException => $e->httpStatus !== null && $e->httpStatus >= 500 && $e->httpStatus < 600,
             default => false,
         };
     }

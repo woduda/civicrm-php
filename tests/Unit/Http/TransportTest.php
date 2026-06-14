@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Http\Client\Exception\TransferException;
 use Nyholm\Psr7\Response;
 use Woduda\CiviCRM\Config;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\TransportException;
 use Woduda\CiviCRM\Http\Transport;
 use Woduda\CiviCRM\Result\ApiResponse;
@@ -87,7 +87,7 @@ it('wraps an exhausted transport-level error in a TransportException', function 
         ->toThrow(TransportException::class, 'down');
 });
 
-it('does not retry a non-5xx ApiException', function (): void {
+it('does not retry a non-5xx ApiErrorException', function (): void {
     [$client, $mock] = civicrmClient();
     $mock->addResponse(new Response(400, [], '{"error_message":"bad request"}'));
 
@@ -95,7 +95,7 @@ it('does not retry a non-5xx ApiException', function (): void {
     $transport = new Transport($client, new ExponentialBackoff(maxAttempts: 3, jitter: false), null, $sleeper(...));
 
     expect(fn(): ApiResponse => $transport->send('Contact', 'get'))
-        ->toThrow(ApiException::class, 'bad request')
+        ->toThrow(ApiErrorException::class, 'bad request')
         ->and($sleeper->calls)->toBe([]);
 });
 
@@ -104,5 +104,5 @@ it('does not retry under the default NoRetry strategy', function (): void {
     $mock->addResponse(new Response(503, [], '{"error_message":"unavailable"}'));
 
     expect(fn(): ApiResponse => (new Transport($client))->send('Contact', 'get'))
-        ->toThrow(ApiException::class, 'unavailable');
+        ->toThrow(ApiErrorException::class, 'unavailable');
 });

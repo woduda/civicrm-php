@@ -20,7 +20,7 @@ use Woduda\CiviCRM\Api\EntitiesApi;
 use Woduda\CiviCRM\Api\EventsApi;
 use Woduda\CiviCRM\Api\ParticipantsApi;
 use Woduda\CiviCRM\Api\PhonesApi;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Result\ApiResponse;
 
 final class Client
@@ -125,7 +125,7 @@ final class Client
      * Sends a request to the API endpoint and wraps the response.
      *
      * @param  array<string, mixed> $params
-     * @throws ApiException             On HTTP 4xx/5xx responses
+     * @throws ApiErrorException        On HTTP 4xx/5xx responses
      * @throws ClientExceptionInterface On transport errors
      * @throws \JsonException           On non-encodable parameters
      */
@@ -136,7 +136,7 @@ final class Client
         $response = $this->httpClient->sendRequest($request);
 
         if ($response->getStatusCode() >= 400) {
-            throw ApiException::fromResponse($response);
+            throw ApiErrorException::fromResponse($response);
         }
 
         return ApiResponse::fromResponse($response);

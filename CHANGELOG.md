@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ExponentialBackoff` (`final readonly`) — exponential back-off with optional full
     jitter (`maxAttempts`, `baseDelayMs`, `multiplier`, `maxDelayMs`, `jitter`). Retries
     only transient failures: `TransportException`, `RateLimitException` (honoring
-    `Retry-After`, capped at `maxDelayMs`), and `ApiException` with a 5xx `httpStatus`.
+    `Retry-After`, capped at `maxDelayMs`), and `ApiErrorException` with a 5xx `httpStatus`.
     Never retries `ValidationException` or `AuthenticationException`.
   - `NoRetry` (`final readonly`) — default strategy; zero retries, preserving the prior
     single-attempt behavior.
@@ -29,11 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Enriched the exception hierarchy so retry decisions can be made:
-  - `ApiException` now carries a nullable `httpStatus`; `ApiException::fromResponse()`
-    captures the HTTP status and routes 429 → `RateLimitException` (parsing `Retry-After`),
-    401/403 → `AuthenticationException`, everything else → `ApiException`.
+  - Renamed the HTTP-error base exception `ApiException` → `ApiErrorException`. It now
+    carries a nullable `httpStatus`; `ApiErrorException::fromResponse()` captures the HTTP
+    status and routes 429 → `RateLimitException` (parsing `Retry-After`), 401/403 →
+    `AuthenticationException`, everything else → `ApiErrorException`.
   - Added `RateLimitException` (with `retryAfterSeconds`), `AuthenticationException`, and
     `TransportException` (wrapping PSR-18 `ClientExceptionInterface` network errors).
+
+### Deprecated
+
+- `Woduda\CiviCRM\Exception\ApiException` is now a backwards-compatible alias of
+  `ApiErrorException` (both names resolve to the same class, so existing
+  `catch (ApiException $e)` blocks and `instanceof` checks keep working). The alias is
+  deprecated and will be removed in 1.0 — migrate to `ApiErrorException`.
 
 ## [0.7.1] - 2026-06-09
 

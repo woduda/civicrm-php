@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Http\Client\Exception\TransferException;
 use Nyholm\Psr7\Response;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\TransportException;
 use Woduda\CiviCRM\Http\Transport;
 use Woduda\CiviCRM\Retry\ExponentialBackoff;
@@ -60,7 +60,7 @@ it('never leaks the API key or sensitive values into any log record', function (
             'action' => 'create',
             'attempt' => 1,
             'delay_ms' => 200,
-            'exception' => ApiException::class,
+            'exception' => ApiErrorException::class,
             'http_status' => 503,
         ]);
 });
@@ -72,7 +72,7 @@ it('logs an error and rethrows when retries are exhausted', function (): void {
     $logger = new SpyLogger();
     $transport = new Transport($client, logger: $logger);
 
-    expect(fn() => $transport->send('Contact', 'get'))->toThrow(ApiException::class, 'boom');
+    expect(fn() => $transport->send('Contact', 'get'))->toThrow(ApiErrorException::class, 'boom');
 
     $errors = $logger->recordsAt('error');
 
@@ -81,7 +81,7 @@ it('logs an error and rethrows when retries are exhausted', function (): void {
             'entity' => 'Contact',
             'action' => 'get',
             'attempt' => 1,
-            'exception' => ApiException::class,
+            'exception' => ApiErrorException::class,
             'http_status' => 500,
         ]);
 });

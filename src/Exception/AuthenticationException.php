@@ -9,4 +9,4 @@ namespace Woduda\CiviCRM\Exception;
  *
  * Never retried — a fresh token or key is required, not another attempt.
  */
-final class AuthenticationException extends ApiException {}
+final class AuthenticationException extends ApiErrorException {}

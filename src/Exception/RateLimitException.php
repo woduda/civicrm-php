@@ -10,7 +10,7 @@ namespace Woduda\CiviCRM\Exception;
  * Carries the `Retry-After` hint (in seconds) when the server provided one,
  * so a retry strategy can honor the server-requested back-off window.
  */
-final class RateLimitException extends ApiException
+final class RateLimitException extends ApiErrorException
 {
     public function __construct(
         string $message = '',

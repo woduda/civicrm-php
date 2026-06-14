@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Nyholm\Psr7\Response;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\AuthenticationException;
 use Woduda\CiviCRM\Exception\RateLimitException;
 
@@ -13,7 +13,7 @@ it('maps error_message and error_code from the body', function (): void {
         'error_code' => 404,
     ]);
 
-    $exception = ApiException::fromResponse(new Response(404, [], $body));
+    $exception = ApiErrorException::fromResponse(new Response(404, [], $body));
 
     expect($exception->getMessage())->toBe('Record not found')
         ->and($exception->getCode())->toBe(404);
@@ -25,20 +25,20 @@ it('casts a numeric string error_code to int', function (): void {
         'error_code' => '400',
     ]);
 
-    $exception = ApiException::fromResponse(new Response(400, [], $body));
+    $exception = ApiErrorException::fromResponse(new Response(400, [], $body));
 
     expect($exception->getCode())->toBe(400);
 });
 
 it('uses defaults when fields are missing', function (): void {
-    $exception = ApiException::fromResponse(new Response(500, [], '{}'));
+    $exception = ApiErrorException::fromResponse(new Response(500, [], '{}'));
 
     expect($exception->getMessage())->toBe('Unknown Api error')
         ->and($exception->getCode())->toBe(0);
 });
 
 it('uses defaults for a non-array body', function (): void {
-    $exception = ApiException::fromResponse(new Response(500, [], 'null'));
+    $exception = ApiErrorException::fromResponse(new Response(500, [], 'null'));
 
     expect($exception->getMessage())->toBe('Unknown Api error')
         ->and($exception->getCode())->toBe(0);
@@ -50,20 +50,20 @@ it('uses defaults for a non-numeric error_code', function (): void {
         'error_code' => 'not-a-number',
     ]);
 
-    $exception = ApiException::fromResponse(new Response(500, [], $body));
+    $exception = ApiErrorException::fromResponse(new Response(500, [], $body));
 
     expect($exception->getMessage())->toBe('Oops')
         ->and($exception->getCode())->toBe(0);
 });
 
 it('captures the HTTP status code', function (): void {
-    $exception = ApiException::fromResponse(new Response(500, [], '{"error_message":"Server error"}'));
+    $exception = ApiErrorException::fromResponse(new Response(500, [], '{"error_message":"Server error"}'));
 
     expect($exception->httpStatus)->toBe(500);
 });
 
 it('routes a 429 to a RateLimitException with the parsed Retry-After', function (): void {
-    $exception = ApiException::fromResponse(
+    $exception = ApiErrorException::fromResponse(
         new Response(429, ['Retry-After' => '7'], '{"error_message":"Slow down"}'),
     );
 
@@ -76,7 +76,7 @@ it('routes a 429 to a RateLimitException with the parsed Retry-After', function 
 });
 
 it('leaves retryAfterSeconds null for a missing or non-numeric Retry-After', function (array $headers): void {
-    $exception = ApiException::fromResponse(new Response(429, $headers, '{}'));
+    $exception = ApiErrorException::fromResponse(new Response(429, $headers, '{}'));
 
     expect($exception)->toBeInstanceOf(RateLimitException::class);
 
@@ -89,15 +89,15 @@ it('leaves retryAfterSeconds null for a missing or non-numeric Retry-After', fun
 ]);
 
 it('routes 401 and 403 to an AuthenticationException', function (int $status): void {
-    $exception = ApiException::fromResponse(new Response($status, [], '{"error_message":"Denied"}'));
+    $exception = ApiErrorException::fromResponse(new Response($status, [], '{"error_message":"Denied"}'));
 
     expect($exception)->toBeInstanceOf(AuthenticationException::class)
         ->and($exception->httpStatus)->toBe($status);
 })->with([[401], [403]]);
 
-it('returns a plain ApiException for other 4xx/5xx statuses', function (): void {
-    $exception = ApiException::fromResponse(new Response(404, [], '{"error_message":"Not found"}'));
+it('returns a plain ApiErrorException for other 4xx/5xx statuses', function (): void {
+    $exception = ApiErrorException::fromResponse(new Response(404, [], '{"error_message":"Not found"}'));
 
-    expect($exception::class)->toBe(ApiException::class);
+    expect($exception::class)->toBe(ApiErrorException::class);
     expect($exception->httpStatus)->toBe(404);
 });
