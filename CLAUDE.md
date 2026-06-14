@@ -140,9 +140,9 @@ Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
 ## Documentation
 
 - PHPDoc on every public method, including @throws for each thrown exception type
-- README with a runnable example per API class
-- docs/ with one guide per topic (quickstart, querying, entities, webhooks, errors)
+- README with a runnable example per API class — currently the primary user docs
 - Keep CHANGELOG.md (Keep a Changelog format)
+- `docs/` is an empty placeholder (only `.gitkeep`); per-topic guides (quickstart, querying, entities, webhooks, errors) are planned but not yet written
 
 ## CiviCRM APIv4 REST facts (authoritative)
 
