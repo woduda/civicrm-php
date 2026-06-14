@@ -22,7 +22,7 @@ use Woduda\CiviCRM\Api\RelationshipApi;
 use Woduda\CiviCRM\Api\RelationshipTypeApi;
 use Woduda\CiviCRM\Api\TagApi;
 use Woduda\CiviCRM\Contract\TransportInterface;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Http\Transport;
 
 /**
@@ -180,7 +180,7 @@ final readonly class CiviCrmClient
      *
      * @param  array<string, mixed> $params
      * @return array<mixed>
-     * @throws ApiException             On HTTP 4xx/5xx responses
+     * @throws ApiErrorException        On HTTP 4xx/5xx responses
      * @throws ClientExceptionInterface On transport-level errors
      */
     public function raw(string $entity, string $action, array $params = []): array

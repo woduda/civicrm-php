@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configurable retry layer under `src/Retry/`:
+  - `RetryStrategy` contract — `shouldRetry(int $attempt, Throwable $e): bool` and
+    `delayMs(int $attempt, ?Throwable $e = null): int`.
+  - `ExponentialBackoff` (`final readonly`) — exponential back-off with optional full
+    jitter (`maxAttempts`, `baseDelayMs`, `multiplier`, `maxDelayMs`, `jitter`). Retries
+    only transient failures: `TransportException`, `RateLimitException` (honoring
+    `Retry-After`, capped at `maxDelayMs`), and `ApiErrorException` with a 5xx `httpStatus`.
+    Never retries `ValidationException` or `AuthenticationException`.
+  - `NoRetry` (`final readonly`) — default strategy; zero retries, preserving the prior
+    single-attempt behavior.
+- `Transport` now accepts an optional `RetryStrategy` (defaults to `NoRetry`), an optional
+  PSR-3 `LoggerInterface`, and an injectable sleeper. It logs a redacted `debug` entry per
+  request, a `warning` per retry, and an `error` on final failure. The `values` payload is
+  masked (`[REDACTED]`) and credentials (which live in request headers) never reach the log.
+  `Transport::createDefault()` gains optional `?RetryStrategy` and `?LoggerInterface`
+  parameters.
+
+### Changed
+
+- Enriched the exception hierarchy so retry decisions can be made:
+  - Renamed the HTTP-error base exception `ApiException` → `ApiErrorException`. It now
+    carries a nullable `httpStatus`; `ApiErrorException::fromResponse()` captures the HTTP
+    status and routes 429 → `RateLimitException` (parsing `Retry-After`), 401/403 →
+    `AuthenticationException`, everything else → `ApiErrorException`.
+  - Added `RateLimitException` (with `retryAfterSeconds`), `AuthenticationException`, and
+    `TransportException` (wrapping PSR-18 `ClientExceptionInterface` network errors).
+
+### Deprecated
+
+- `Woduda\CiviCRM\Exception\ApiException` is now a backwards-compatible alias of
+  `ApiErrorException` (both names resolve to the same class, so existing
+  `catch (ApiException $e)` blocks and `instanceof` checks keep working). The alias is
+  deprecated and will be removed in 1.0 — migrate to `ApiErrorException`.
+
 ## [0.7.1] - 2026-06-09
 
 ### Changed

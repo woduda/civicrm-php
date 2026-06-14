@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Nyholm\Psr7\Response;
 use Woduda\CiviCRM\Client;
 use Woduda\CiviCRM\Config;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Result\ApiResponse;
 
 it('can be constructed via auto-discovery', function (): void {
@@ -69,7 +69,7 @@ it('actually dispatches the built request to the http client', function (): void
     expect(lastRequestUri($mock))->toEndWith('Contact/get');
 });
 
-it('throws ApiException on a 400 response (boundary)', function (): void {
+it('throws ApiErrorException on a 400 response (boundary)', function (): void {
     [$client, $mock] = civicrmClient();
     $mock->addResponse(new Response(400, [], (string) json_encode([
         'error_message' => 'Bad request',
@@ -77,15 +77,15 @@ it('throws ApiException on a 400 response (boundary)', function (): void {
     ])));
 
     expect(fn(): ApiResponse => $client->sendRequest('Contact/get'))
-        ->toThrow(ApiException::class, 'Bad request');
+        ->toThrow(ApiErrorException::class, 'Bad request');
 });
 
-it('throws ApiException on a 500 response', function (): void {
+it('throws ApiErrorException on a 500 response', function (): void {
     [$client, $mock] = civicrmClient();
     $mock->addResponse(new Response(500, [], '{"error_message":"Server error"}'));
 
     expect(fn(): ApiResponse => $client->sendRequest('Contact/get'))
-        ->toThrow(ApiException::class, 'Server error');
+        ->toThrow(ApiErrorException::class, 'Server error');
 });
 
 it('does not throw on a 399 response (boundary)', function (): void {

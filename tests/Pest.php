@@ -6,6 +6,8 @@ use Http\Discovery\Psr18ClientDiscovery;
 use Http\Discovery\Strategy\MockClientStrategy;
 use Http\Mock\Client as MockClient;
 use Psr\Http\Message\RequestInterface;
+use Psr\Log\AbstractLogger;
+use Stringable;
 use Woduda\CiviCRM\Client;
 use Woduda\CiviCRM\CiviCrmClient;
 use Woduda\CiviCRM\Config;
@@ -53,6 +55,62 @@ final class SpyTransport implements TransportInterface
         }
 
         return new ApiResponse(4, 0, []);
+    }
+}
+
+/**
+ * Records the milliseconds it is asked to sleep without ever sleeping.
+ *
+ * Pass to {@see \Woduda\CiviCRM\Http\Transport} as `$spy(...)` (a Closure)
+ * and inspect {@see self::$calls} afterwards.
+ */
+final class SpySleeper
+{
+    /** @var list<int> */
+    public array $calls = [];
+
+    public function __invoke(int $ms): void
+    {
+        $this->calls[] = $ms;
+    }
+}
+
+/**
+ * In-memory PSR-3 logger capturing every record for assertions.
+ */
+final class SpyLogger extends AbstractLogger
+{
+    /** @var list<array{level: mixed, message: string, context: array<mixed>}> */
+    public array $records = [];
+
+    /**
+     * @param array<mixed> $context
+     */
+    public function log(mixed $level, string|Stringable $message, array $context = []): void
+    {
+        $this->records[] = [
+            'level' => $level,
+            'message' => (string) $message,
+            'context' => $context,
+        ];
+    }
+
+    /**
+     * Returns every record at the given PSR-3 level.
+     *
+     * @return list<array{level: mixed, message: string, context: array<mixed>}>
+     */
+    public function recordsAt(string $level): array
+    {
+        return array_values(array_filter($this->records, static fn(array $record): bool => $record['level'] === $level));
+    }
+
+    /**
+     * Serializes all captured records so tests can assert on their full content.
+     */
+    public function dump(): string
+    {
+        return (string) json_encode($this->records);
     }
 }
 

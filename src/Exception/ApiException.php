@@ -4,29 +4,18 @@ declare(strict_types=1);
 
 namespace Woduda\CiviCRM\Exception;
 
-use Psr\Http\Message\ResponseInterface;
-use RuntimeException;
-
-/**
- * Thrown when CiviCRM returns an HTTP 4xx/5xx response.
+/*
+ * Backwards-compatibility alias for the renamed {@see ApiErrorException}.
+ *
+ * @deprecated since 0.8.0; use {@see ApiErrorException} instead. The alias keeps
+ *             existing `catch (ApiException $e)` blocks and `instanceof` checks
+ *             working — both names resolve to the same class — and will be
+ *             removed in 1.0.
+ *
+ * class_alias() autoloads the target class (third argument defaults to true),
+ * so referencing ApiException alone is enough to load ApiErrorException.
  */
-class ApiException extends RuntimeException implements CivicrmException
-{
-    /**
-     * Builds an exception from an error response returned by the API.
-     */
-    public static function fromResponse(ResponseInterface $response): self
-    {
-        $json = json_decode($response->getBody()->getContents(), true);
-
-        $message = is_array($json) && isset($json['error_message']) && is_string($json['error_message'])
-            ? $json['error_message']
-            : 'Unknown Api error';
-
-        $code = is_array($json) && isset($json['error_code']) && is_numeric($json['error_code'])
-            ? (int) $json['error_code']
-            : 0;
-
-        return new self($message, $code);
-    }
-}
+class_alias(
+    \Woduda\CiviCRM\Exception\ApiErrorException::class,
+    'Woduda\\CiviCRM\\Exception\\ApiException',
+);

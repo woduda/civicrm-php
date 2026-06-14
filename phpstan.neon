@@ -7,3 +7,7 @@ parameters:
         - src
         - tests
     treatPhpDocTypesAsCertain: false
+    # Load the backwards-compatibility alias so PHPStan's reflection resolves the
+    # legacy Woduda\CiviCRM\Exception\ApiException name to ApiErrorException.
+    bootstrapFiles:
+        - src/Exception/ApiException.php

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Exception\CivicrmException;
 use Woduda\CiviCRM\Exception\ValidationException;
 
@@ -16,7 +16,7 @@ it('builds an invalid order direction exception', function (): void {
 
 it('unifies the library exceptions under CivicrmException', function (): void {
     expect((new ReflectionClass(ValidationException::class))->implementsInterface(CivicrmException::class))->toBeTrue()
-        ->and((new ReflectionClass(ApiException::class))->implementsInterface(CivicrmException::class))->toBeTrue();
+        ->and((new ReflectionClass(ApiErrorException::class))->implementsInterface(CivicrmException::class))->toBeTrue();
 });
 
 it('builds an unknown custom field exception', function (): void {
