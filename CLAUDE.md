@@ -54,7 +54,7 @@ backwards compatibility; all new entity APIs build on the new one.
 Entry point:
 - `CiviCrmClient` (`src/CiviCrmClient.php`) — `final readonly`; `::create(Config)` factory auto-discovers HTTP client via `Transport::createDefault`; `entity(string): GenericApi` escape hatch for any entity; `raw(entity, action, params): array` for one-off requests; typed shortcuts for all implemented entities (see below)
 - `TransportInterface` (`src/Contract/TransportInterface.php`) — `send(entity, action, params): ApiResponse`
-- `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter; `createDefault(Config): self`
+- `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter; `createDefault(Config, ?RetryStrategy = null, ?LoggerInterface = null): self`. Wraps each `send()` in a retry loop (injectable `RetryStrategy`, default `NoRetry`), optional PSR-3 logging (debug per request, warning per retry, error on final failure), and an injectable sleeper (so tests never really sleep). Redacts the `values` payload (`[REDACTED]`) and never logs credentials. Catches PSR-18 `ClientExceptionInterface` and rethrows as `TransportException`.
 
 Base classes:
 - `AbstractEntityApi` (`src/Api/AbstractEntityApi.php`) — `abstract readonly`; 4 helpers: `executeGet(GetQuery): Result`, `executeAction(ActionRequest): Result`, `getFields(): array`, `getActions(): array`
@@ -91,6 +91,20 @@ Contracts:
 - `ClockInterface` (`src/Contract/ClockInterface.php`) — `now(): DateTimeImmutable`; implemented by `SystemClock` (`src/SystemClock.php`)
 - `FromArrayInterface` (`src/Entity/FromArrayInterface.php`) — `fromArray(array): static`; implemented by all entity DTOs
 
+Resilience — retry (`src/Retry/`):
+- `RetryStrategy` (`src/Retry/RetryStrategy.php`) — `shouldRetry(int $attempt, \Throwable): bool`, `delayMs(int $attempt, ?\Throwable = null): int` (the `?\Throwable` lets a strategy honor `Retry-After`)
+- `NoRetry` (`final readonly`) — default; zero retries (preserves single-attempt behavior)
+- `ExponentialBackoff` (`final readonly`) — `(maxAttempts=3, baseDelayMs=200, multiplier=2.0, maxDelayMs=5000, jitter=true)`; full jitter, `maxDelayMs` cap. Retries ONLY transient failures: `TransportException`, `RateLimitException` (honors `Retry-After`, capped at `maxDelayMs`), and `ApiErrorException` with a 5xx `httpStatus`. NEVER retries `ValidationException` / `AuthenticationException`.
+
+Exceptions (`src/Exception/`):
+- `CivicrmException` — marker interface implemented by every library exception (catch-all)
+- `ApiErrorException` — base for HTTP 4xx/5xx error responses; `final readonly ?int $httpStatus`; `fromResponse(ResponseInterface): self` routes 429 -> `RateLimitException` (parses `Retry-After`), 401/403 -> `AuthenticationException`, else -> `ApiErrorException`. NOTE: non-`final` (it is a base).
+- `RateLimitException extends ApiErrorException` (`final`) — adds `?int $retryAfterSeconds`
+- `AuthenticationException extends ApiErrorException` (`final`)
+- `TransportException` (`final`) — wraps PSR-18 `ClientExceptionInterface` network errors; `fromThrowable(\Throwable): self`
+- `ValidationException` (`final`, extends `InvalidArgumentException`) — invalid builder input; outside the `ApiErrorException` tree, never retried
+- `ApiException` (`src/Exception/ApiException.php`) — DEPRECATED `class_alias` of `ApiErrorException` (same class; keeps `catch`/`instanceof` working), to be removed in 1.0. PHPStan resolves it via a `bootstrapFiles` entry in `phpstan.neon`; do NOT reference `ApiException` in new code.
+
 Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
 - `Contact`, `Activity`, `Tag`, `Group`, `Email`, `Phone`, `Address`, `AddressData`, `Note`
 - `Relationship`, `RelationshipType`
@@ -116,6 +130,9 @@ Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
   - `civicrmClient(): [Client, MockClient]` — for HTTP-level tests (old layer)
   - `civicrmNewClient(): [CiviCrmClient, SpyTransport]` — for transport-level tests (new layer)
 - `SpyTransport` (defined in `tests/Pest.php`) — in-memory spy implementing `TransportInterface`; `queue(ApiResponse)` to preset a response; `$spy->calls` to assert dispatched entity/action/params
+- `SpyLogger` (in `tests/Pest.php`) — in-memory PSR-3 logger (`extends AbstractLogger`); `records`, `recordsAt(level)`, `dump()` for asserting logged content (and that secrets never leak)
+- `SpySleeper` (in `tests/Pest.php`) — records requested sleep ms without sleeping; pass to `Transport` as `$spy(...)` and assert `$spy->calls`
+- Transport retry tests use `civicrmClient()` + `MockClient`: `addResponse()` queues responses FIFO (e.g. two 503s then 200), `addException()` queues a thrown PSR-18 error first (use `Http\Client\Exception\TransferException` so the mock accepts it)
 - Fixtures: real CiviCRM APIv4 JSON responses in tests/Fixtures/\*.json
 - Every public method has tests, including error paths (4xx, 5xx, malformed JSON)
 - Use datasets for operator/edge-case matrices
