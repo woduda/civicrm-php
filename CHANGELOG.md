@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configurable retry layer under `src/Retry/`:
+  - `RetryStrategy` contract — `shouldRetry(int $attempt, Throwable $e): bool` and
+    `delayMs(int $attempt, ?Throwable $e = null): int`.
+  - `ExponentialBackoff` (`final readonly`) — exponential back-off with optional full
+    jitter (`maxAttempts`, `baseDelayMs`, `multiplier`, `maxDelayMs`, `jitter`). Retries
+    only transient failures: `TransportException`, `RateLimitException` (honoring
+    `Retry-After`, capped at `maxDelayMs`), and `ApiException` with a 5xx `httpStatus`.
+    Never retries `ValidationException` or `AuthenticationException`.
+  - `NoRetry` (`final readonly`) — default strategy; zero retries, preserving the prior
+    single-attempt behavior.
+- `Transport` now accepts an optional `RetryStrategy` (defaults to `NoRetry`), an optional
+  PSR-3 `LoggerInterface`, and an injectable sleeper. It logs a redacted `debug` entry per
+  request, a `warning` per retry, and an `error` on final failure. The `values` payload is
+  masked (`[REDACTED]`) and credentials (which live in request headers) never reach the log.
+  `Transport::createDefault()` gains optional `?RetryStrategy` and `?LoggerInterface`
+  parameters.
+
+### Changed
+
+- Enriched the exception hierarchy so retry decisions can be made:
+  - `ApiException` now carries a nullable `httpStatus`; `ApiException::fromResponse()`
+    captures the HTTP status and routes 429 → `RateLimitException` (parsing `Retry-After`),
+    401/403 → `AuthenticationException`, everything else → `ApiException`.
+  - Added `RateLimitException` (with `retryAfterSeconds`), `AuthenticationException`, and
+    `TransportException` (wrapping PSR-18 `ClientExceptionInterface` network errors).
+
 ## [0.7.1] - 2026-06-09
 
 ### Changed
