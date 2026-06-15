@@ -22,9 +22,9 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use Psr\Http\Client\ClientExceptionInterface;
-use Woduda\CiviCRM\Client;
+use Woduda\CiviCRM\CiviCrmClient;
 use Woduda\CiviCRM\Config;
-use Woduda\CiviCRM\Exception\ApiException;
+use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Query\GetQuery;
 use Woduda\CiviCRM\Query\Operator;
 
@@ -45,12 +45,16 @@ $query = GetQuery::new()
     ->orderBy('display_name');
 
 try {
-    $client = new Client(new Config(baseUrl: $baseUrl, apiKey: $apiKey));
-    $result = $client->contacts()->get($query->toParams());
+    $client = CiviCrmClient::create(new Config(baseUrl: $baseUrl, apiKey: $apiKey));
+    $contacts = $client->entity('Contact')->get($query);
 
-    printf("PASS — connected and authenticated. %d contact(s) found.\n", $result->count);
+    printf("PASS — connected and authenticated. %d contact(s) found.\n", count($contacts));
 
-    foreach ($result->values as $contact) {
+    foreach ($contacts as $contact) {
+        if (! is_array($contact)) {
+            continue;
+        }
+
         printf(
             "  #%s  %s  %s\n",
             (string) ($contact['id'] ?? '?'),
@@ -60,7 +64,7 @@ try {
     }
 
     exit(0);
-} catch (ApiException $e) {
+} catch (ApiErrorException $e) {
     fwrite(STDERR, sprintf(
         "FAIL — CiviCRM returned an API error (code %d): %s\n"
         . "Check the API key, the authx extension, the user's permissions, and that the sub-type exists.\n",

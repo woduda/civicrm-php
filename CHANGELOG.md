@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING:** Removed the legacy entity-accessor layer. `EntitiesApi` and its
+  subclasses (`ContactsApi`, `ActivitiesApi`, `AddressesApi`, `ContributionsApi`,
+  `EmailsApi`, `EventsApi`, `ParticipantsApi`, `PhonesApi`) and the corresponding
+  `Client::contacts()`/`activities()`/… accessors are gone. Use `CiviCrmClient` and
+  its typed entity APIs (`$client->contacts()` now returns `ContactApi`, etc.), or the
+  `$client->entity('Contact')` / `$client->raw(...)` escape hatches.
+- **BREAKING:** Removed the deprecated `Woduda\CiviCRM\Exception\ApiException` alias
+  (deprecated in 0.8.0). Catch `ApiErrorException` instead.
+
+### Changed
+
+- `Client` is no longer an entity entry point; it is now solely the low-level PSR-18
+  HTTP core that `Transport` delegates to. Its public HTTP surface
+  (`getRequest()`/`sendRequest()`) is unchanged, so custom PSR-18 injection via
+  `new Transport(new Client($config, $myPsr18Client))` still works.
+- Dropped the `phpstan.neon` `bootstrapFiles` entry that loaded the `ApiException` alias.
+
 ## [0.8.0] - 2026-06-14
 
 ### Added

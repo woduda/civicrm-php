@@ -930,7 +930,3 @@ try {
 
 `RateLimitException` and `AuthenticationException` extend `ApiErrorException`, so an
 `ApiErrorException` catch still covers them when you don't need the distinction.
-
-> **Deprecation:** the former name `ApiException` is still available as an alias of
-> `ApiErrorException` (same class, so existing `catch (ApiException $e)` keeps working),
-> but it is deprecated and will be removed in 1.0 — migrate to `ApiErrorException`.
