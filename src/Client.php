@@ -11,27 +11,20 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Woduda\CiviCRM\Api\ActivitiesApi;
-use Woduda\CiviCRM\Api\AddressesApi;
-use Woduda\CiviCRM\Api\ContactsApi;
-use Woduda\CiviCRM\Api\ContributionsApi;
-use Woduda\CiviCRM\Api\EmailsApi;
-use Woduda\CiviCRM\Api\EntitiesApi;
-use Woduda\CiviCRM\Api\EventsApi;
-use Woduda\CiviCRM\Api\ParticipantsApi;
-use Woduda\CiviCRM\Api\PhonesApi;
 use Woduda\CiviCRM\Exception\ApiErrorException;
 use Woduda\CiviCRM\Result\ApiResponse;
 
+/**
+ * PSR-18 HTTP transport for the CiviCRM APIv4 REST endpoint.
+ *
+ * Builds and dispatches form-encoded `params` requests, applies the required
+ * headers and bearer authentication, and maps responses to {@see ApiResponse}
+ * (or throws {@see ApiErrorException} on HTTP 4xx/5xx). The default transport
+ * {@see \Woduda\CiviCRM\Http\Transport} delegates to this class; inject your own
+ * PSR-18 client here to customise timeouts, retries, or test doubles.
+ */
 final class Client
 {
-    /**
-     * Lazily instantiated entity API accessors.
-     *
-     * @var array<string, EntitiesApi>
-     */
-    private array $apiCache = [];
-
     /**
      * Headers sent with every request.
      *
@@ -58,46 +51,6 @@ final class Client
             requestFactory: $requestFactory,
             streamFactory: $streamFactory,
         );
-    }
-
-    public function activities(): ActivitiesApi
-    {
-        return $this->cached('activities', static fn(Client $client): ActivitiesApi => new ActivitiesApi($client));
-    }
-
-    public function addresses(): AddressesApi
-    {
-        return $this->cached('addresses', static fn(Client $client): AddressesApi => new AddressesApi($client));
-    }
-
-    public function contacts(): ContactsApi
-    {
-        return $this->cached('contacts', static fn(Client $client): ContactsApi => new ContactsApi($client));
-    }
-
-    public function contributions(): ContributionsApi
-    {
-        return $this->cached('contributions', static fn(Client $client): ContributionsApi => new ContributionsApi($client));
-    }
-
-    public function emails(): EmailsApi
-    {
-        return $this->cached('emails', static fn(Client $client): EmailsApi => new EmailsApi($client));
-    }
-
-    public function events(): EventsApi
-    {
-        return $this->cached('events', static fn(Client $client): EventsApi => new EventsApi($client));
-    }
-
-    public function participants(): ParticipantsApi
-    {
-        return $this->cached('participants', static fn(Client $client): ParticipantsApi => new ParticipantsApi($client));
-    }
-
-    public function phones(): PhonesApi
-    {
-        return $this->cached('phones', static fn(Client $client): PhonesApi => new PhonesApi($client));
     }
 
     /**
@@ -168,19 +121,5 @@ final class Client
     private function getAuthHeaders(): array
     {
         return ['Authorization' => 'Bearer ' . $this->config->getApiKey()];
-    }
-
-    /**
-     * @template T of EntitiesApi
-     *
-     * @param  callable(self): T $factory
-     * @return T
-     */
-    private function cached(string $key, callable $factory): EntitiesApi
-    {
-        /** @var T $api */
-        $api = $this->apiCache[$key] ??= $factory($this);
-
-        return $api;
     }
 }

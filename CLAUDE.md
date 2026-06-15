@@ -46,15 +46,16 @@ fully typed. Mirrors the ergonomics of modern API SDKs (Stripe-php style).
 
 ## Architecture
 
-Two parallel entry-point layers exist in the codebase — the legacy one is kept for
-backwards compatibility; all new entity APIs build on the new one.
-
-**New layer (preferred for all new code):**
+A single entry-point layer (`CiviCrmClient` over `TransportInterface`). The old
+`EntitiesApi`/`*sApi` accessor layer and the `ApiException` alias were removed in
+0.9.0; `Client` is retained purely as the low-level PSR-18 HTTP core that `Transport`
+delegates to.
 
 Entry point:
 - `CiviCrmClient` (`src/CiviCrmClient.php`) — `final readonly`; `::create(Config)` factory auto-discovers HTTP client via `Transport::createDefault`; `entity(string): GenericApi` escape hatch for any entity; `raw(entity, action, params): array` for one-off requests; typed shortcuts for all implemented entities (see below)
 - `TransportInterface` (`src/Contract/TransportInterface.php`) — `send(entity, action, params): ApiResponse`
 - `Transport` (`src/Http/Transport.php`) — `final readonly` PSR-18 adapter; `createDefault(Config, ?RetryStrategy = null, ?LoggerInterface = null): self`. Wraps each `send()` in a retry loop (injectable `RetryStrategy`, default `NoRetry`), optional PSR-3 logging (debug per request, warning per retry, error on final failure), and an injectable sleeper (so tests never really sleep). Redacts the `values` payload (`[REDACTED]`) and never logs credentials. Catches PSR-18 `ClientExceptionInterface` and rethrows as `TransportException`.
+- `Client` (`src/Client.php`) — `final`; low-level PSR-18 HTTP core: `sendRequest(uri, params): ApiResponse`. `Transport` delegates to it; inject your own PSR-18 client here for custom timeouts/retries/test doubles. Not an entity API — do not call it directly for CRUD.
 
 Base classes:
 - `AbstractEntityApi` (`src/Api/AbstractEntityApi.php`) — `abstract readonly`; 4 helpers: `executeGet(GetQuery): Result`, `executeAction(ActionRequest): Result`, `getFields(): array`, `getActions(): array`
@@ -103,7 +104,6 @@ Exceptions (`src/Exception/`):
 - `AuthenticationException extends ApiErrorException` (`final`)
 - `TransportException` (`final`) — wraps PSR-18 `ClientExceptionInterface` network errors; `fromThrowable(\Throwable): self`
 - `ValidationException` (`final`, extends `InvalidArgumentException`) — invalid builder input; outside the `ApiErrorException` tree, never retried
-- `ApiException` (`src/Exception/ApiException.php`) — DEPRECATED `class_alias` of `ApiErrorException` (same class; keeps `catch`/`instanceof` working), to be removed in 1.0. PHPStan resolves it via a `bootstrapFiles` entry in `phpstan.neon`; do NOT reference `ApiException` in new code.
 
 Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
 - `Contact`, `Activity`, `Tag`, `Group`, `Email`, `Phone`, `Address`, `AddressData`, `Note`
@@ -111,10 +111,6 @@ Entity DTOs (all `final readonly` implementing `FromArrayInterface`):
 - `Event`, `Participant`
 - `Contribution`, `ContributionTotals`
 - Enums: `ContributionStatus`, `ParticipantStatus`
-
-**Legacy layer (do not extend):**
-- `Client` (`src/Client.php`) — PSR-18 HTTP transport; `sendRequest(uri, params): ApiResponse`
-- `EntitiesApi` (`src/Api/EntitiesApi.php`) — abstract base for old typed subclasses (`ContactsApi`, `ActivitiesApi`, `AddressesApi`, `EmailsApi`, `EventsApi`, `ParticipantsApi`, `PhonesApi`, `ContributionsApi`)
 
 **Coding notes for the new layer:**
 - `abstract readonly class` requires the child to also be `readonly` (PHP 8.2+ enforced)

@@ -13,8 +13,6 @@ use RuntimeException;
  * Acts as the base type for status-specific subclasses
  * ({@see RateLimitException}, {@see AuthenticationException}); the concrete
  * type is selected by {@see self::fromResponse()} based on the HTTP status.
- *
- * The legacy name {@see ApiException} remains available as a deprecated alias.
  */
 class ApiErrorException extends RuntimeException implements CivicrmException
 {
